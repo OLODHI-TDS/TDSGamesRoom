@@ -691,7 +691,7 @@
             </div>
 
             <div class="button-group">
-                <button class="btn" onclick="returnToLobby()">
+                <button class="btn" id="triviaHowToPlayBackBtn" onclick="returnToLobby()" style="display: none;">
                     ← Back to Lobby
                 </button>
                 <button class="btn btn-primary" id="startSpeedTriviaBtn" onclick="startSpeedTrivia()" style="display: none;">
@@ -1333,8 +1333,9 @@
             // Show the how to play screen for host
             showScreen('triviaHowToPlayScreen');
 
-            // Show the start button for host only
+            // Show the start and back buttons for host only
             document.getElementById('startSpeedTriviaBtn').style.display = 'inline-block';
+            document.getElementById('triviaHowToPlayBackBtn').style.display = 'inline-block';
 
             // Broadcast to all players to show them the how to play screen too
             broadcast({
