@@ -1,0 +1,3514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDS Team Game Hour</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        h2 {
+            color: #764ba2;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        input {
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1em;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px 0;
+        }
+
+        .room-code {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 3px;
+        }
+
+        .players-list {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .player-item {
+            padding: 10px;
+            background: white;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .player-score {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .game-card:hover {
+            transform: scale(1.05);
+        }
+
+        .game-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .question-container {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .question-text {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .answer-btn {
+            padding: 20px;
+            font-size: 1.1em;
+            background: white;
+            color: #333;
+            border: 3px solid #667eea;
+        }
+
+        .answer-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .answer-btn.correct {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+        }
+
+        .answer-btn.incorrect {
+            background: #f44336;
+            border-color: #f44336;
+            color: white;
+        }
+
+        .answer-btn.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .timer {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .scoreboard {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .word-card {
+            padding: 20px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .word-card:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+        }
+
+        .word-card.revealed-blue {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        .word-card.revealed-red {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .word-card.revealed-neutral {
+            background: #FFC107;
+            color: white;
+            border-color: #FFC107;
+        }
+
+        .word-card.revealed-assassin {
+            background: #000;
+            color: white;
+            border-color: #000;
+        }
+
+        .team-indicator {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .team-blue {
+            background: #2196F3;
+            color: white;
+        }
+
+        .team-red {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .status-info {
+            background: #E3F2FD;
+            color: #1976D2;
+        }
+
+        .status-success {
+            background: #E8F5E9;
+            color: #388E3C;
+        }
+
+        .status-warning {
+            background: #FFF3E0;
+            color: #F57C00;
+        }
+
+        .status-error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .canvas-container {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid #ddd;
+            cursor: pointer;
+        }
+
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.2);
+        }
+
+        .statements-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .statement-card {
+            background: white;
+            padding: 20px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.1em;
+        }
+
+        .statement-card:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        .statement-card.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connecting {
+            background: #FFC107;
+        }
+
+        .status-dot.disconnected {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .answers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .word-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 5px;
+            }
+
+            .word-card {
+                padding: 10px;
+                font-size: 0.8em;
+            }
+
+            .canvas-container {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus" style="display: none;">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+    </div>
+
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <h1>🎮 TDS Team Game Hour</h1>
+            <p class="subtitle">Four awesome games, one amazing team!</p>
+            
+            <div style="text-align: center; margin-top: 40px;">
+                <h2>Choose Your Role:</h2>
+                <button onclick="startAsHost()" style="font-size: 1.3em; padding: 20px 40px;">
+                    🎯 I'm the Host
+                </button>
+                <br>
+                <button onclick="startAsPlayer()" style="font-size: 1.3em; padding: 20px 40px;">
+                    🎮 I'm a Player
+                </button>
+            </div>
+        </div>
+
+        <!-- Host Setup Screen -->
+        <div id="hostSetupScreen" class="screen">
+            <h1>🎯 Host Setup</h1>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <label for="hostName" style="display: block; margin-bottom: 10px; font-size: 1.2em;">Your Name:</label>
+                <input type="text" id="hostName" placeholder="Enter your name" style="display: block; margin: 0 auto;">
+            </div>
+
+            <div style="text-align: center;">
+                <button onclick="createRoom()" style="font-size: 1.2em; padding: 20px 40px;">
+                    Create Game Room
+                </button>
+            </div>
+
+            <div class="status-message status-info" style="margin-top: 20px;">
+                💡 Make sure the game server is running and you have internet connection
+            </div>
+        </div>
+
+        <!-- Player Join Screen -->
+        <div id="playerJoinScreen" class="screen">
+            <h1>🎮 Join Game</h1>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <label for="playerName" style="display: block; margin-bottom: 10px; font-size: 1.2em;">Your Name:</label>
+                <input type="text" id="playerName" placeholder="Enter your name" style="display: block; margin: 0 auto;">
+                
+                <label for="roomCode" style="display: block; margin: 20px 0 10px; font-size: 1.2em;">Room Code:</label>
+                <input type="text" id="roomCode" placeholder="Enter 6-character code" maxlength="6" style="display: block; margin: 0 auto; text-transform: uppercase;">
+            </div>
+
+            <div style="text-align: center;">
+                <button onclick="joinRoom()" style="font-size: 1.2em; padding: 20px 40px;">
+                    Join Room
+                </button>
+            </div>
+
+            <div class="status-message status-info" style="margin-top: 20px;">
+                💡 Get the room code from your host
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="screen">
+            <h1>🎮 Game Lobby</h1>
+            
+            <div class="room-code" id="lobbyRoomCode"></div>
+            
+            <div class="status-message status-info" id="lobbyStatus">
+                Waiting for players to join...
+            </div>
+
+            <div class="players-list">
+                <h2>Players in Room (<span id="playerCount">0</span>):</h2>
+                <div id="lobbyPlayersList"></div>
+            </div>
+
+            <div id="hostControls" style="display: none; text-align: center;">
+                <h2>Select a Game to Start:</h2>
+                <div class="game-grid">
+                    <div class="game-card" onclick="startGame('trivia')">
+                        <h3>⚡ Speed Trivia</h3>
+                        <p>Quick-fire questions!</p>
+                    </div>
+                    <div class="game-card" onclick="showTeamSelectionForCodenames()">
+                        <h3>🕵️ Codenames</h3>
+                        <p>Spymaster word association</p>
+                    </div>
+                    <div class="game-card" onclick="startGame('truthlie')">
+                        <h3>🎭 Truth & Lie</h3>
+                        <p>Spot the fake!</p>
+                    </div>
+                    <div class="game-card" onclick="startGame('quickdraw-ffa')">
+                        <h3>🎨 Quick Draw: FFA</h3>
+                        <p>Free-for-all!</p>
+                    </div>
+                    <div class="game-card" onclick="startGame('quickdraw-teams')">
+                        <h3>🎨 Quick Draw: Teams</h3>
+                        <p>Team showdown!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Selection Screen -->
+        <div id="teamSelectionScreen" class="screen">
+            <h1 id="teamSelectionTitle">🎨 Team Selection</h1>
+
+            <!-- How to Play Button for Codenames -->
+            <div id="codenamesHowToPlayButton" style="display: none; text-align: center; margin: 10px 0;">
+                <button onclick="toggleCodenamesRules()" style="padding: 8px 16px; font-size: 0.9em; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">
+                    📖 How to Play Codenames
+                </button>
+            </div>
+
+            <!-- How to Play Section (Hidden by default) -->
+            <div id="codenamesRules" style="display: none; max-width: 800px; margin: 20px auto; padding: 20px; background: rgba(255, 215, 0, 0.1); border: 2px solid #FFD700; border-radius: 10px;">
+                <h3 style="text-align: center; margin-top: 0;">🕵️ How to Play Codenames</h3>
+                <div style="text-align: left; line-height: 1.6;">
+                    <p><strong>Objective:</strong> Be the first team to identify all of your team's words on the grid.</p>
+
+                    <p><strong>Roles:</strong></p>
+                    <ul>
+                        <li><strong>Spymaster (👁️):</strong> Knows which words belong to which team. Gives one-word clues to help their team guess correctly.</li>
+                        <li><strong>Operatives:</strong> Try to guess their team's words based on the Spymaster's clues.</li>
+                    </ul>
+
+                    <p><strong>How to Play:</strong></p>
+                    <ol>
+                        <li>The Spymaster gives a <strong>one-word clue</strong> and a <strong>number</strong>. The number tells operatives how many words on the board relate to that clue.</li>
+                        <li>Operatives discuss and click words they think match the clue. They can make (number + 1) guesses.</li>
+                        <li>If they click their team's word: ✅ Continue guessing!</li>
+                        <li>If they click a neutral word: ⚪ Turn ends.</li>
+                        <li>If they click the opponent's word: ❌ Turn ends AND the opponent gets that word.</li>
+                        <li>If they click the ASSASSIN (☠️): ⚫ Your team instantly loses!</li>
+                    </ol>
+
+                    <p><strong>Winning:</strong> First team to reveal all their words wins. Click the assassin and you lose immediately!</p>
+
+                    <p><strong>Strategy Tips:</strong></p>
+                    <ul>
+                        <li>Spymasters: Try to connect multiple words with one clever clue!</li>
+                        <li>Operatives: Discuss before clicking - avoid the assassin at all costs!</li>
+                        <li>You can end your turn early using the "End Turn" button if you don't want to risk more guesses.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="teamSelectionAutoAssign" style="text-align: center; margin: 20px 0;">
+                <button onclick="autoAssignTeams()" style="padding: 12px 24px; font-size: 1.1em; margin-bottom: 20px;">
+                    🎲 Auto-Assign Teams
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; margin: 0 auto;">
+                <div style="background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 10px;">
+                    <h2 style="color: #667eea; text-align: center; margin-bottom: 15px;">Team A</h2>
+                    <!-- Spymaster Selection for Codenames -->
+                    <div id="teamASpymasterSection" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.2); border-radius: 5px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">👁️ Spymaster:</label>
+                        <select id="teamASpymaster" onchange="updateSpymaster('teamA', this.value)" style="width: 100%; padding: 8px; border-radius: 5px; border: 2px solid #667eea;">
+                            <option value="">Select Spymaster...</option>
+                        </select>
+                    </div>
+                    <div id="teamAList" style="min-height: 200px;"></div>
+                </div>
+                <div style="background: rgba(118, 75, 162, 0.1); padding: 20px; border-radius: 10px;">
+                    <h2 style="color: #764ba2; text-align: center; margin-bottom: 15px;">Team B</h2>
+                    <!-- Spymaster Selection for Codenames -->
+                    <div id="teamBSpymasterSection" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.2); border-radius: 5px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">👁️ Spymaster:</label>
+                        <select id="teamBSpymaster" onchange="updateSpymaster('teamB', this.value)" style="width: 100%; padding: 8px; border-radius: 5px; border: 2px solid #764ba2;">
+                            <option value="">Select Spymaster...</option>
+                        </select>
+                    </div>
+                    <div id="teamBList" style="min-height: 200px;"></div>
+                </div>
+            </div>
+
+            <div id="unassignedPlayers" style="max-width: 800px; margin: 30px auto; padding: 20px; background: #f9f9f9; border-radius: 10px;">
+                <h3 style="text-align: center; margin-bottom: 15px;">Unassigned Players</h3>
+                <div id="unassignedList"></div>
+            </div>
+
+            <div id="teamSelectionButtons" style="text-align: center; margin-top: 20px;">
+                <button id="startTeamGameButton" onclick="startSelectedTeamGame()" style="padding: 15px 30px; font-size: 1.2em; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Start Game
+                </button>
+                <button onclick="cancelTeamSelection()" style="padding: 15px 30px; font-size: 1.2em; margin-left: 10px;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Speed Trivia Game -->
+        <div id="triviaScreen" class="screen">
+            <h1>⚡ Speed Trivia</h1>
+
+            <div class="timer" id="triviaTimer">15</div>
+
+            <div style="text-align: center; margin: 10px 0;">
+                <span id="triviaProgress" style="font-size: 1.2em; font-weight: bold; color: #667eea;">Question 1 of 15</span>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="triviaQuestion">Loading question...</div>
+
+                <div class="answers-grid" id="triviaAnswers">
+                    <!-- Answers will be inserted here -->
+                </div>
+            </div>
+
+            <div class="status-message status-info" id="triviaStatus"></div>
+
+            <div class="scoreboard">
+                <h2>Current Scores:</h2>
+                <div id="triviaScoreboard"></div>
+            </div>
+
+            <div id="triviaHostControls" style="display: none; text-align: center; margin-top: 20px;">
+                <button onclick="nextTriviaQuestion()">Next Question</button>
+                <button onclick="endGame()">End Game</button>
+            </div>
+        </div>
+
+        <!-- Codenames Game -->
+        <div id="wordwebScreen" class="screen">
+            <h1>🕵️ Codenames</h1>
+
+            <div class="team-indicator" id="wordwebTeam">Blue Team's Turn</div>
+
+            <div class="status-message status-info" id="wordwebStatus">
+                Spymaster: Give a clue! Operatives: Guess the words!
+            </div>
+
+            <!-- Spymaster Clue Section -->
+            <div id="spymasterClueSection" style="display: none; margin: 20px auto; max-width: 600px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 10px;">
+                <h3 style="text-align: center; margin-bottom: 15px;">Give Your Team a Clue</h3>
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <input type="text" id="clueWord" placeholder="One word clue..." style="padding: 10px; font-size: 1.1em; border-radius: 5px; border: 2px solid #667eea; width: 250px;" maxlength="30">
+                    <input type="number" id="clueNumber" placeholder="#" min="0" max="9" style="padding: 10px; font-size: 1.1em; border-radius: 5px; border: 2px solid #667eea; width: 80px;">
+                    <button onclick="giveClue()" style="padding: 10px 20px; font-size: 1.1em; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Give Clue</button>
+                </div>
+            </div>
+
+            <!-- Current Clue Display -->
+            <div id="currentClueDisplay" style="display: none; text-align: center; margin: 15px 0; padding: 15px; background: rgba(118, 75, 162, 0.1); border-radius: 10px;">
+                <h3 style="margin: 0;">Current Clue: <span id="currentClueText" style="color: #667eea;">-</span></h3>
+                <p style="margin: 5px 0 0 0; color: #666;">Guesses remaining: <span id="guessesRemaining">0</span></p>
+            </div>
+
+            <!-- Spymaster Key (only visible to spymasters) -->
+            <div id="spymasterKey" style="display: none; margin: 20px auto; max-width: 900px; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 2px dashed #FFD700; border-radius: 10px;">
+                <h3 style="text-align: center; margin-bottom: 10px;">🔑 Spymaster Key (Only You Can See This)</h3>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; font-size: 0.9em;" id="spymasterKeyGrid">
+                    <!-- Key will be inserted here -->
+                </div>
+            </div>
+
+            <div class="word-grid" id="wordwebGrid">
+                <!-- Words will be inserted here -->
+            </div>
+
+            <div class="scoreboard">
+                <h2>Progress:</h2>
+                <div id="wordwebScoreboard"></div>
+            </div>
+
+            <div id="wordwebHostControls" style="display: none; text-align: center; margin-top: 20px;">
+                <button onclick="endTurn()">End Turn</button>
+                <button onclick="endGame()">End Game</button>
+            </div>
+        </div>
+
+        <!-- Truth & Lie Game -->
+        <div id="truthlieScreen" class="screen">
+            <h1>🎭 Two Truths & A Lie</h1>
+            
+            <div class="status-message status-info" id="truthlieStatus">
+                Which statement is the LIE?
+            </div>
+
+            <div class="question-container">
+                <h2 id="truthliePlayer" style="text-align: center; margin-bottom: 20px;">About TDS & Team</h2>
+                
+                <div class="statements-container" id="truthlieStatements">
+                    <!-- Statements will be inserted here -->
+                </div>
+            </div>
+
+            <div class="scoreboard">
+                <h2>Scores:</h2>
+                <div id="truthlieScoreboard"></div>
+            </div>
+
+            <div id="truthlieHostControls" style="display: none; text-align: center; margin-top: 20px;">
+                <button onclick="revealTruthlieAnswer()">Reveal Answer</button>
+                <button onclick="nextTruthlieRound()">Next Round</button>
+                <button onclick="endGame()">End Game</button>
+            </div>
+        </div>
+
+        <!-- Quick Draw Game -->
+        <div id="quickdrawScreen" class="screen">
+            <h1>🎨 Quick Draw</h1>
+
+            <div class="timer" id="quickdrawTimer">60</div>
+
+            <div id="quickdrawTeamIndicator" style="display: none; text-align: center; margin: 10px 0;">
+                <span style="font-size: 1.3em; font-weight: bold; color: #667eea;" id="quickdrawCurrentTeam">Team A's Turn</span>
+            </div>
+
+            <div class="status-message status-info" id="quickdrawStatus">
+                Waiting for artist...
+            </div>
+
+            <div style="text-align: center;">
+                <canvas id="drawingCanvas" class="canvas-container" width="600" height="400"></canvas>
+                
+                <div class="color-palette" id="colorPalette" style="display: none;">
+                    <div class="color-btn" style="background: #000;" onclick="setDrawColor('#000')"></div>
+                    <div class="color-btn" style="background: #f44336;" onclick="setDrawColor('#f44336')"></div>
+                    <div class="color-btn" style="background: #2196F3;" onclick="setDrawColor('#2196F3')"></div>
+                    <div class="color-btn" style="background: #4CAF50;" onclick="setDrawColor('#4CAF50')"></div>
+                    <div class="color-btn" style="background: #FFC107;" onclick="setDrawColor('#FFC107')"></div>
+                    <button onclick="clearCanvas()" style="margin-left: 20px;">Clear</button>
+                </div>
+
+                <div id="guessingArea" style="display: none; margin: 20px 0;">
+                    <input type="text" id="guessInput" placeholder="Type your guess..." style="max-width: 400px;">
+                    <button onclick="submitGuess()">Submit Guess</button>
+                </div>
+            </div>
+
+            <div id="guessFeed" style="background: #f9f9f9; padding: 15px; border-radius: 10px; margin: 20px 0; max-height: 150px; overflow-y: auto; display: none;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1em; color: #667eea;">Recent Guesses:</h3>
+                <div id="guessList" style="font-size: 0.9em;"></div>
+            </div>
+
+            <div class="scoreboard">
+                <h2>Scores:</h2>
+                <div id="quickdrawScoreboard"></div>
+            </div>
+
+            <div id="quickdrawHostControls" style="display: none; text-align: center; margin-top: 20px;">
+                <button onclick="nextDrawingRound()">Next Round</button>
+                <button onclick="endGame()">End Game</button>
+            </div>
+        </div>
+
+        <!-- Final Results Screen -->
+        <div id="resultsScreen" class="screen">
+            <h1>🏆 Final Results</h1>
+            
+            <div class="scoreboard">
+                <h2>Final Scores:</h2>
+                <div id="finalScoreboard"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;" id="resultsHostControls">
+                <button onclick="returnToLobby()" style="font-size: 1.2em; padding: 20px 40px;">
+                    Back to Lobby
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Server configuration
+        const SERVER_URL = 'http://localhost:3000';
+
+        // Global state
+        let socket = null;
+        let connections = {}; // Keep for compatibility with drawing code
+        let gameState = {
+            isHost: false,
+            peerId: null, // Will use socket.id instead
+            roomCode: '',
+            playerName: '',
+            players: {},
+            scores: {},
+            currentGame: null
+        };
+
+        // Connection status
+        function updateConnectionStatus(status, text) {
+            const statusEl = document.getElementById('connectionStatus');
+            const dotEl = document.getElementById('statusDot');
+            const textEl = document.getElementById('statusText');
+            
+            statusEl.style.display = 'flex';
+            dotEl.className = 'status-dot ' + status;
+            textEl.textContent = text;
+        }
+
+        // Generate simple room code
+        function generateRoomCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function startAsHost() {
+            gameState.isHost = true;
+            showScreen('hostSetupScreen');
+        }
+
+        function startAsPlayer() {
+            gameState.isHost = false;
+            showScreen('playerJoinScreen');
+        }
+
+        function createRoom() {
+            const hostName = document.getElementById('hostName').value.trim();
+            if (!hostName) {
+                alert('Please enter your name!');
+                return;
+            }
+
+            gameState.playerName = hostName;
+            gameState.roomCode = generateRoomCode();
+
+            updateConnectionStatus('connecting', 'Setting up room...');
+
+            // Initialize Socket.IO connection
+            socket = io(SERVER_URL);
+
+            socket.on('connect', () => {
+                console.log('Socket connected with ID:', socket.id);
+                gameState.peerId = socket.id;
+
+                // Create room on server
+                socket.emit('createRoom', {
+                    roomCode: gameState.roomCode,
+                    hostName: hostName
+                });
+            });
+
+            socket.on('roomCreated', (data) => {
+                console.log('Room created successfully:', data);
+
+                // Add host as first player
+                gameState.players[socket.id] = {
+                    name: hostName,
+                    isHost: true
+                };
+                gameState.scores[socket.id] = 0;
+
+                showScreen('lobbyScreen');
+                document.getElementById('lobbyRoomCode').textContent = `Room Code: ${gameState.roomCode}`;
+                document.getElementById('hostControls').style.display = 'block';
+                updateLobbyPlayers();
+                updateConnectionStatus('', 'Host Connected');
+
+                // Setup game data handlers
+                setupSocketHandlers();
+            });
+
+            socket.on('playerJoined', (data) => {
+                console.log('Player joined:', data);
+
+                // Add new player
+                gameState.players[data.playerId] = {
+                    name: data.playerName,
+                    isHost: false
+                };
+                gameState.scores[data.playerId] = 0;
+                updateLobbyPlayers();
+
+                // Send current game state to new player
+                if (gameState.isHost) {
+                    const gameData = gameState.currentGame ? getCurrentGameData() : null;
+                    socket.emit('sendToPlayer', {
+                        playerId: data.playerId,
+                        data: {
+                            type: 'gameState',
+                            players: gameState.players,
+                            scores: gameState.scores,
+                            currentGame: gameState.currentGame,
+                            gameData: gameData
+                        }
+                    });
+                }
+            });
+
+            socket.on('playerLeft', (data) => {
+                console.log('Player left:', data);
+                if (gameState.players[data.playerId]) {
+                    delete gameState.players[data.playerId];
+                    delete gameState.scores[data.playerId];
+                    updateLobbyPlayers();
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Socket disconnected');
+                updateConnectionStatus('disconnected', 'Disconnected');
+            });
+
+            socket.on('error', (err) => {
+                console.error('Socket error:', err);
+                updateConnectionStatus('disconnected', 'Connection Error');
+                alert('Connection error. Please try again.');
+            });
+        }
+
+        function joinRoom() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+
+            if (!playerName || !roomCode || roomCode.length !== 6) {
+                alert('Please enter your name and a valid 6-character room code!');
+                return;
+            }
+
+            gameState.playerName = playerName;
+            gameState.roomCode = roomCode;
+
+            updateConnectionStatus('connecting', 'Connecting to room...');
+
+            // Initialize Socket.IO connection
+            socket = io(SERVER_URL);
+
+            socket.on('connect', () => {
+                console.log('Socket connected with ID:', socket.id);
+                gameState.peerId = socket.id;
+
+                // Join room on server
+                socket.emit('joinRoom', {
+                    roomCode: roomCode,
+                    playerName: playerName
+                });
+            });
+
+            socket.on('joinedRoom', (data) => {
+                console.log('Successfully joined room:', data);
+
+                // Update local player list
+                gameState.players = {};
+                data.players.forEach(player => {
+                    gameState.players[player.id] = {
+                        name: player.name,
+                        isHost: player.id === data.players[0].id
+                    };
+                    if (!gameState.scores[player.id]) {
+                        gameState.scores[player.id] = 0;
+                    }
+                });
+
+                showScreen('lobbyScreen');
+                document.getElementById('lobbyRoomCode').textContent = `Room Code: ${roomCode}`;
+                updateLobbyPlayers();
+                updateConnectionStatus('', 'Connected');
+
+                // Setup game data handlers
+                setupSocketHandlers();
+            });
+
+            socket.on('joinError', (data) => {
+                console.error('Join error:', data);
+                updateConnectionStatus('disconnected', 'Connection Failed');
+                alert(data.message || 'Could not join room. Please check the room code and try again.');
+            });
+
+            socket.on('hostDisconnected', () => {
+                console.log('Host disconnected');
+                updateConnectionStatus('disconnected', 'Host Disconnected');
+                alert('The host has disconnected. Returning to home screen.');
+                showScreen('welcomeScreen');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Socket disconnected');
+                updateConnectionStatus('disconnected', 'Disconnected');
+            });
+
+            socket.on('error', (err) => {
+                console.error('Socket error:', err);
+                updateConnectionStatus('disconnected', 'Connection Error');
+                alert('Connection error. Please try again.');
+            });
+        }
+
+        // Setup Socket.IO game data handler (called from both createRoom and joinRoom)
+        function setupSocketHandlers() {
+            if (!socket) return;
+
+            // Listen for game data from other players
+            socket.on('gameData', (data) => {
+                handleMessage(data, null);
+            });
+        }
+
+        function setupConnection(conn) {
+            // Legacy function - kept for compatibility
+            // Not used in Socket.IO version
+        }
+
+        function handleMessage(data, conn) {
+            console.log('Received message:', data);
+
+            // Note: Join handling is now done via Socket.IO events in createRoom/joinRoom
+            // Keeping the structure for compatibility with other message types
+
+            if (data.type === 'gameState') {
+                // Update game state from host
+                console.log('Received gameState from host:', data);
+                gameState.players = data.players;
+                gameState.scores = data.scores;
+                if (data.currentGame && data.currentGame !== gameState.currentGame) {
+                    gameState.currentGame = data.currentGame;
+                    if (data.gameData) {
+                        loadGame(data.currentGame, data.gameData);
+                    }
+                }
+                updateLobbyPlayers();
+                updateAllScoreboards();
+            }
+            else if (data.type === 'playerJoined') {
+                gameState.players[data.playerId] = {
+                    name: data.playerName,
+                    isHost: false
+                };
+                gameState.scores[data.playerId] = 0;
+                updateLobbyPlayers();
+            }
+            else if (data.type === 'startGame') {
+                loadGame(data.game, data.gameData);
+            }
+            else if (data.type === 'gameUpdate') {
+                if (data.scores) {
+                    gameState.scores = data.scores;
+                }
+                updateGameData(data.gameData);
+            }
+            else if (data.type === 'endGame') {
+                // Handle end game message from host
+                gameState.scores = data.scores;
+                gameState.players = data.players;
+                gameState.currentGame = null;
+
+                // If quick draw team mode, restore team data
+                if (data.isQuickdrawTeamMode && data.quickdrawTeamData) {
+                    quickdrawGameState.teams = data.quickdrawTeamData.teams;
+                    quickdrawGameState.teamScores = data.quickdrawTeamData.teamScores;
+                    quickdrawGameState.teamMode = true;
+                }
+
+                // If codenames mode, restore team data
+                if (data.isCodenamesMode && data.codenamesTeamData) {
+                    wordwebGameState.teams = data.codenamesTeamData.teams;
+                    wordwebGameState.wordsRemaining = data.codenamesTeamData.wordsRemaining;
+                    wordwebGameState.winner = data.codenamesTeamData.winner;
+                    wordwebGameState.spymasters = data.codenamesTeamData.spymasters;
+                }
+
+                // Clear any active timers
+                if (triviaGameState.timer) clearInterval(triviaGameState.timer);
+                if (quickdrawGameState.timer) clearInterval(quickdrawGameState.timer);
+
+                showScreen('resultsScreen');
+
+                // Show appropriate scoreboard
+                if (data.isQuickdrawTeamMode) {
+                    updateFinalTeamScoreboard();
+                } else if (data.isCodenamesMode) {
+                    updateFinalCodenamesScoreboard();
+                } else {
+                    updateScoreboard('finalScoreboard');
+                }
+            }
+            else if (data.type === 'returnToLobby') {
+                // Handle return to lobby from host
+                gameState.currentGame = null;
+
+                // Reset scores
+                if (data.scores) {
+                    gameState.scores = data.scores;
+                }
+
+                showScreen('lobbyScreen');
+                updateLobbyPlayers();
+            }
+            else if (data.type === 'showTeamSelection') {
+                // Show team selection screen on clients
+                gameState.currentGame = data.game;
+                showScreen('teamSelectionScreen');
+                renderTeamSelection();
+            }
+            else if (data.type === 'updateTeamSelection') {
+                // Update team assignments on clients
+                teamSelection.teamA = data.teamA;
+                teamSelection.teamB = data.teamB;
+                teamSelection.spymasterA = data.spymasterA;
+                teamSelection.spymasterB = data.spymasterB;
+                renderTeamSelection();
+            }
+            else if (data.type === 'cancelTeamSelection') {
+                // Return to lobby when host cancels team selection
+                gameState.currentGame = null;
+                showScreen('lobbyScreen');
+            }
+            else if (data.type === 'triviaAnswer' && gameState.isHost) {
+                handleTriviaAnswer(data.playerId, data.answer, data.timestamp);
+            }
+            else if (data.type === 'wordwebSelect' && gameState.isHost) {
+                handleWordwebSelect(data.index);
+            }
+            else if (data.type === 'codenamesClue' && gameState.isHost) {
+                handleCodenamesClue(data.senderId || data.playerId, data.word, data.number);
+            }
+            else if (data.type === 'truthlieVote' && gameState.isHost) {
+                handleTruthlieVote(data.playerId, data.vote);
+            }
+            else if (data.type === 'drawingData') {
+                handleDrawingData(data.drawData);
+
+                // If host receives drawing data from a client, relay it to all other clients
+                if (gameState.isHost && data.senderId) {
+                    broadcast({
+                        type: 'drawingData',
+                        drawData: data.drawData,
+                        senderId: data.senderId
+                    }, [data.senderId]); // Exclude the sender
+                }
+            }
+            else if (data.type === 'clearCanvas') {
+                if (ctx) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                // If host receives clear canvas from a client, relay it to all other clients
+                if (gameState.isHost && data.senderId) {
+                    broadcast({
+                        type: 'clearCanvas',
+                        senderId: data.senderId
+                    }, [data.senderId]); // Exclude the sender
+                }
+            }
+            else if (data.type === 'guess' && gameState.isHost) {
+                handleGuess(data.playerId, data.guess);
+            }
+        }
+
+        function broadcast(message, exclude = []) {
+            if (!socket || !gameState.roomCode) return;
+
+            // Use Socket.IO broadcast to server
+            socket.emit('broadcast', {
+                roomCode: gameState.roomCode,
+                data: message,
+                excludeIds: exclude
+            });
+        }
+
+        function broadcastToPlayer(playerId, message) {
+            if (!socket) return;
+
+            // Send to specific player via server
+            socket.emit('sendToPlayer', {
+                playerId: playerId,
+                data: message
+            });
+        }
+
+        function broadcastGameState() {
+            if (!gameState.isHost) return;
+
+            broadcast({
+                type: 'gameState',
+                players: gameState.players,
+                scores: gameState.scores,
+                currentGame: gameState.currentGame,
+                gameData: getCurrentGameData()
+            });
+        }
+
+        function updateLobbyPlayers() {
+            const list = document.getElementById('lobbyPlayersList');
+            const count = document.getElementById('playerCount');
+            
+            list.innerHTML = '';
+            const playerCount = Object.keys(gameState.players).length;
+            if (count) count.textContent = playerCount;
+
+            Object.keys(gameState.players).forEach(playerId => {
+                const player = gameState.players[playerId];
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                item.innerHTML = `
+                    <span class="player-name">${player.name}${player.isHost ? ' 👑' : ''}</span>
+                    <span class="player-score">Ready</span>
+                `;
+                list.appendChild(item);
+            });
+
+            if (gameState.isHost && playerCount >= 2) {
+                const status = document.getElementById('lobbyStatus');
+                if (status) {
+                    status.textContent = 'Ready to start! Select a game below.';
+                    status.className = 'status-message status-success';
+                }
+            }
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame(gameType) {
+            if (!gameState.isHost) return;
+            if (Object.keys(gameState.players).length < 2) {
+                alert('Need at least 2 players to start!');
+                return;
+            }
+
+            gameState.currentGame = gameType;
+
+            let gameData = null;
+            if (gameType === 'trivia') {
+                gameData = initTriviaGame();
+            } else if (gameType === 'wordweb') {
+                gameData = initWordwebGame();
+            } else if (gameType === 'truthlie') {
+                gameData = initTruthlieGame();
+            } else if (gameType === 'quickdraw-ffa') {
+                gameData = initQuickdrawGame(false);
+            } else if (gameType === 'quickdraw-teams') {
+                // Show team selection screen instead of starting immediately
+                showTeamSelectionScreen();
+                return;
+            }
+
+            broadcast({
+                type: 'startGame',
+                game: gameType,
+                gameData: gameData
+            });
+        }
+
+        function loadGame(gameType, gameData) {
+            gameState.currentGame = gameType;
+
+            if (gameType === 'trivia') {
+                showScreen('triviaScreen');
+                if (gameData) loadTriviaGame(gameData);
+            } else if (gameType === 'wordweb') {
+                showScreen('wordwebScreen');
+                if (gameData) loadWordwebGame(gameData);
+            } else if (gameType === 'truthlie') {
+                showScreen('truthlieScreen');
+                if (gameData) loadTruthlieGame(gameData);
+            } else if (gameType === 'quickdraw-ffa' || gameType === 'quickdraw-teams') {
+                showScreen('quickdrawScreen');
+                if (gameData) loadQuickdrawGame(gameData);
+            }
+        }
+
+        function getCurrentGameData() {
+            if (gameState.currentGame === 'trivia') return triviaGameState;
+            if (gameState.currentGame === 'wordweb') return wordwebGameState;
+            if (gameState.currentGame === 'truthlie') return truthlieGameState;
+            if (gameState.currentGame === 'quickdraw-ffa' || gameState.currentGame === 'quickdraw-teams') return quickdrawGameState;
+            return null;
+        }
+
+        function updateGameData(data) {
+            if (gameState.currentGame === 'trivia') {
+                updateTriviaGame(data);
+            } else if (gameState.currentGame === 'wordweb') {
+                updateWordwebGame(data);
+            } else if (gameState.currentGame === 'truthlie') {
+                updateTruthlieGame(data);
+            } else if (gameState.currentGame === 'quickdraw-ffa' || gameState.currentGame === 'quickdraw-teams') {
+                updateQuickdrawGame(data);
+            }
+        }
+
+        function updateAllScoreboards() {
+            updateScoreboard('triviaScoreboard');
+            updateScoreboard('wordwebScoreboard');
+            updateScoreboard('truthlieScoreboard');
+            updateScoreboard('quickdrawScoreboard');
+            updateScoreboard('finalScoreboard');
+        }
+
+        function updateScoreboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            element.innerHTML = '';
+            const sortedPlayers = Object.keys(gameState.scores).sort((a, b) => {
+                return gameState.scores[b] - gameState.scores[a];
+            });
+
+            sortedPlayers.forEach((playerId, index) => {
+                const player = gameState.players[playerId];
+                if (!player) return;
+
+                const item = document.createElement('div');
+                item.className = 'score-item';
+                const medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+                item.innerHTML = `
+                    <span>${medal}${player.name}</span>
+                    <span style="color: #667eea; font-weight: bold;">${gameState.scores[playerId]} pts</span>
+                `;
+                element.appendChild(item);
+            });
+        }
+
+        function updateFinalTeamScoreboard() {
+            const element = document.getElementById('finalScoreboard');
+            if (!element) return;
+
+            // Build Team A members list
+            let teamAMembers = quickdrawGameState.teams.teamA.map(playerId => {
+                const player = gameState.players[playerId];
+                return player ? player.name : 'Unknown';
+            }).join(', ');
+
+            // Build Team B members list
+            let teamBMembers = quickdrawGameState.teams.teamB.map(playerId => {
+                const player = gameState.players[playerId];
+                return player ? player.name : 'Unknown';
+            }).join(', ');
+
+            // Determine winner
+            const teamAScore = quickdrawGameState.teamScores.teamA;
+            const teamBScore = quickdrawGameState.teamScores.teamB;
+            const teamAWon = teamAScore > teamBScore;
+            const teamBWon = teamBScore > teamAScore;
+            const tie = teamAScore === teamBScore;
+
+            element.innerHTML = `
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">${teamAWon ? '🥇 ' : tie ? '🥈 ' : '🥈 '}Team A</span>
+                        <span style="color: #667eea; font-weight: bold;">${teamAScore} pts</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamAMembers}</div>
+                </div>
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">${teamBWon ? '🥇 ' : tie ? '🥈 ' : '🥈 '}Team B</span>
+                        <span style="color: #764ba2; font-weight: bold;">${teamBScore} pts</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamBMembers}</div>
+                </div>
+            `;
+        }
+
+        function updateFinalCodenamesScoreboard() {
+            const element = document.getElementById('finalScoreboard');
+            if (!element) return;
+
+            // Build Team A members list with spymaster indicator
+            let teamAMembers = wordwebGameState.teams.teamA.map(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = playerId === wordwebGameState.spymasters.teamA;
+                return player ? (player.name + (isSpymaster ? ' 👁️' : '')) : 'Unknown';
+            }).join(', ');
+
+            // Build Team B members list with spymaster indicator
+            let teamBMembers = wordwebGameState.teams.teamB.map(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = playerId === wordwebGameState.spymasters.teamB;
+                return player ? (player.name + (isSpymaster ? ' 👁️' : '')) : 'Unknown';
+            }).join(', ');
+
+            // Determine winner based on words remaining (team with 0 remaining won)
+            const teamAWon = wordwebGameState.winner === 'teamA';
+            const teamBWon = wordwebGameState.winner === 'teamB';
+            const teamAWordsLeft = wordwebGameState.wordsRemaining.teamA;
+            const teamBWordsLeft = wordwebGameState.wordsRemaining.teamB;
+
+            element.innerHTML = `
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">${teamAWon ? '🥇 ' : '🥈 '}Team A</span>
+                        <span style="color: #667eea; font-weight: bold;">${teamAWon ? 'WINNER!' : teamAWordsLeft + ' words left'}</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamAMembers}</div>
+                </div>
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">${teamBWon ? '🥇 ' : '🥈 '}Team B</span>
+                        <span style="color: #764ba2; font-weight: bold;">${teamBWon ? 'WINNER!' : teamBWordsLeft + ' words left'}</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamBMembers}</div>
+                </div>
+            `;
+        }
+
+        function endGame() {
+            // Store if we're ending a team-based game
+            const isQuickdrawTeamMode = quickdrawGameState.teamMode;
+            const isCodenamesMode = wordwebGameState.teams && wordwebGameState.teams.teamA && wordwebGameState.teams.teamA.length > 0;
+
+            gameState.currentGame = null;
+
+            // Clear any active timers
+            if (triviaGameState.timer) clearInterval(triviaGameState.timer);
+            if (quickdrawGameState.timer) clearInterval(quickdrawGameState.timer);
+
+            showScreen('resultsScreen');
+
+            // Show appropriate scoreboard
+            if (isQuickdrawTeamMode) {
+                updateFinalTeamScoreboard();
+            } else if (isCodenamesMode) {
+                updateFinalCodenamesScoreboard();
+            } else {
+                updateScoreboard('finalScoreboard');
+            }
+
+            if (gameState.isHost) {
+                document.getElementById('resultsHostControls').style.display = 'block';
+
+                // Broadcast end game to all players
+                broadcast({
+                    type: 'endGame',
+                    scores: gameState.scores,
+                    players: gameState.players,
+                    isQuickdrawTeamMode: isQuickdrawTeamMode,
+                    isCodenamesMode: isCodenamesMode,
+                    quickdrawTeamData: isQuickdrawTeamMode ? {
+                        teams: quickdrawGameState.teams,
+                        teamScores: quickdrawGameState.teamScores
+                    } : null,
+                    codenamesTeamData: isCodenamesMode ? {
+                        teams: wordwebGameState.teams,
+                        wordsRemaining: wordwebGameState.wordsRemaining,
+                        winner: wordwebGameState.winner,
+                        spymasters: wordwebGameState.spymasters
+                    } : null
+                });
+            }
+        }
+
+        function returnToLobby() {
+            gameState.currentGame = null;
+
+            // Reset all scores to 0
+            Object.keys(gameState.scores).forEach(playerId => {
+                gameState.scores[playerId] = 0;
+            });
+
+            showScreen('lobbyScreen');
+            updateLobbyPlayers();
+
+            if (gameState.isHost) {
+                broadcast({
+                    type: 'returnToLobby',
+                    scores: gameState.scores
+                });
+            }
+        }
+
+        // ===== TRIVIA GAME =====
+        const allTriviaQuestions = [
+            {
+                question: "What does TDS stand for?",
+                answers: ["The Dispute Service", "Technology Data Systems", "Total Digital Solutions", "Technical Development Service"],
+                correct: 0
+            },
+            {
+                question: "In what year was the first iPhone released?",
+                answers: ["2005", "2007", "2009", "2010"],
+                correct: 1
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                answers: ["Venus", "Jupiter", "Mars", "Saturn"],
+                correct: 2
+            },
+            {
+                question: "What is the capital of Australia?",
+                answers: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+                correct: 2
+            },
+            {
+                question: "Who painted the Mona Lisa?",
+                answers: ["Van Gogh", "Picasso", "Da Vinci", "Rembrandt"],
+                correct: 2
+            },
+            {
+                question: "What is the most popular programming language in 2024?",
+                answers: ["Python", "Java", "JavaScript", "C++"],
+                correct: 0
+            },
+            {
+                question: "What year did the Internet become publicly available?",
+                answers: ["1983", "1991", "1995", "2000"],
+                correct: 1
+            },
+            {
+                question: "How many players are on a football team on the field at once?",
+                answers: ["9", "10", "11", "12"],
+                correct: 2
+            },
+            {
+                question: "What is the largest ocean on Earth?",
+                answers: ["Atlantic", "Indian", "Arctic", "Pacific"],
+                correct: 3
+            },
+            {
+                question: "Which company owns YouTube?",
+                answers: ["Facebook", "Google", "Microsoft", "Amazon"],
+                correct: 1
+            },
+            {
+                question: "How many sides does a hexagon have?",
+                answers: ["5", "6", "7", "8"],
+                correct: 1
+            },
+            {
+                question: "What is the smallest country in the world?",
+                answers: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"],
+                correct: 1
+            },
+            {
+                question: "Which programming language is known as the 'language of the web'?",
+                answers: ["Python", "JavaScript", "Ruby", "PHP"],
+                correct: 1
+            },
+            {
+                question: "What does HTML stand for?",
+                answers: ["Hyper Text Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"],
+                correct: 0
+            },
+            {
+                question: "How many continents are there?",
+                answers: ["5", "6", "7", "8"],
+                correct: 2
+            },
+            {
+                question: "What is the speed of light?",
+                answers: ["300,000 km/s", "150,000 km/s", "450,000 km/s", "600,000 km/s"],
+                correct: 0
+            },
+            {
+                question: "Who founded Microsoft?",
+                answers: ["Steve Jobs", "Bill Gates", "Mark Zuckerberg", "Jeff Bezos"],
+                correct: 1
+            },
+            {
+                question: "What year was Facebook launched?",
+                answers: ["2002", "2003", "2004", "2005"],
+                correct: 2
+            },
+            {
+                question: "Which element has the chemical symbol 'O'?",
+                answers: ["Gold", "Oxygen", "Osmium", "Oganesson"],
+                correct: 1
+            },
+            {
+                question: "How many teeth does an adult human have?",
+                answers: ["28", "30", "32", "34"],
+                correct: 2
+            },
+            {
+                question: "What is the capital of France?",
+                answers: ["London", "Berlin", "Paris", "Madrid"],
+                correct: 2
+            },
+            {
+                question: "Which planet is closest to the Sun?",
+                answers: ["Venus", "Mercury", "Mars", "Earth"],
+                correct: 1
+            },
+            {
+                question: "What does CPU stand for?",
+                answers: ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Computer Processing Utility"],
+                correct: 0
+            },
+            {
+                question: "How many players are on a basketball team on the court?",
+                answers: ["4", "5", "6", "7"],
+                correct: 1
+            },
+            {
+                question: "What is the largest mammal in the world?",
+                answers: ["African Elephant", "Blue Whale", "Giraffe", "Polar Bear"],
+                correct: 1
+            },
+            {
+                question: "Which country invented pizza?",
+                answers: ["France", "Spain", "Italy", "Greece"],
+                correct: 2
+            },
+            {
+                question: "What does WWW stand for in a website address?",
+                answers: ["World Wide Web", "World Web Wide", "Wide World Web", "Web Wide World"],
+                correct: 0
+            },
+            {
+                question: "How many hours are in a day?",
+                answers: ["12", "24", "36", "48"],
+                correct: 1
+            },
+            {
+                question: "What is the hardest natural substance on Earth?",
+                answers: ["Gold", "Iron", "Diamond", "Titanium"],
+                correct: 2
+            },
+            {
+                question: "Which social media platform has a bird as its logo?",
+                answers: ["Facebook", "Instagram", "Twitter/X", "Snapchat"],
+                correct: 2
+            },
+            {
+                question: "What year did World War II end?",
+                answers: ["1943", "1944", "1945", "1946"],
+                correct: 2
+            },
+            {
+                question: "How many colors are in a rainbow?",
+                answers: ["5", "6", "7", "8"],
+                correct: 2
+            },
+            {
+                question: "What is the capital of Japan?",
+                answers: ["Beijing", "Seoul", "Tokyo", "Bangkok"],
+                correct: 2
+            },
+            {
+                question: "Which gas do plants absorb from the atmosphere?",
+                answers: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+                correct: 2
+            },
+            {
+                question: "What does USB stand for?",
+                answers: ["Universal Serial Bus", "United System Bus", "Universal System Block", "United Serial Block"],
+                correct: 0
+            },
+            {
+                question: "How many minutes are in an hour?",
+                answers: ["50", "60", "70", "80"],
+                correct: 1
+            },
+            {
+                question: "Which streaming service is known for its original series 'Stranger Things'?",
+                answers: ["Amazon Prime", "Netflix", "Disney+", "Hulu"],
+                correct: 1
+            },
+            {
+                question: "What is the smallest prime number?",
+                answers: ["0", "1", "2", "3"],
+                correct: 2
+            },
+            {
+                question: "Which planet has the most moons?",
+                answers: ["Jupiter", "Saturn", "Uranus", "Neptune"],
+                correct: 1
+            },
+            {
+                question: "What does AI stand for?",
+                answers: ["Artificial Intelligence", "Automated Intelligence", "Advanced Interface", "Artificial Interface"],
+                correct: 0
+            }
+        ];
+
+        let triviaGameState = {
+            questions: [],
+            currentQuestionIndex: 0,
+            totalQuestions: 15,
+            timeLeft: 15,
+            timer: null,
+            playerAnswers: {},
+            revealed: false
+        };
+
+        function initTriviaGame() {
+            // Randomly select questions for this game
+            const shuffled = [...allTriviaQuestions].sort(() => Math.random() - 0.5);
+            triviaGameState.questions = shuffled.slice(0, Math.min(triviaGameState.totalQuestions, shuffled.length));
+
+            triviaGameState.currentQuestionIndex = 0;
+            triviaGameState.playerAnswers = {};
+            triviaGameState.revealed = false;
+
+            showScreen('triviaScreen');
+
+            if (gameState.isHost) {
+                document.getElementById('triviaHostControls').style.display = 'block';
+            }
+
+            // Update scoreboard to show current (reset) scores
+            updateScoreboard('triviaScoreboard');
+
+            loadTriviaQuestion();
+            return triviaGameState;
+        }
+
+        function loadTriviaGame(data) {
+            triviaGameState = data;
+            renderTriviaQuestion();
+            updateScoreboard('triviaScoreboard');
+            if (gameState.isHost) {
+                startTriviaTimer();
+            }
+        }
+
+        function loadTriviaQuestion() {
+            triviaGameState.playerAnswers = {};
+            triviaGameState.revealed = false;
+            triviaGameState.timeLeft = 15;
+            
+            renderTriviaQuestion();
+            
+            if (gameState.isHost) {
+                startTriviaTimer();
+                broadcastGameUpdate();
+            }
+        }
+
+        function renderTriviaQuestion() {
+            const question = triviaGameState.questions[triviaGameState.currentQuestionIndex];
+            document.getElementById('triviaQuestion').textContent = question.question;
+            document.getElementById('triviaTimer').textContent = triviaGameState.timeLeft;
+
+            // Update progress indicator
+            const progressText = `Question ${triviaGameState.currentQuestionIndex + 1} of ${triviaGameState.questions.length}`;
+            document.getElementById('triviaProgress').textContent = progressText;
+
+            const answersContainer = document.getElementById('triviaAnswers');
+            answersContainer.innerHTML = '';
+
+            question.answers.forEach((answer, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = answer;
+
+                if (triviaGameState.revealed) {
+                    btn.disabled = true;
+                    if (index === question.correct) {
+                        btn.classList.add('correct');
+                    }
+                    if (triviaGameState.playerAnswers[gameState.peerId]?.answer === index) {
+                        btn.classList.add('selected');
+                    }
+                } else {
+                    if (triviaGameState.playerAnswers[gameState.peerId]?.answer === index) {
+                        btn.classList.add('selected');
+                        btn.disabled = true;
+                    } else {
+                        btn.onclick = () => submitTriviaAnswer(index);
+                    }
+                }
+
+                answersContainer.appendChild(btn);
+            });
+
+            const status = document.getElementById('triviaStatus');
+            if (triviaGameState.revealed) {
+                status.textContent = `Correct answer: ${question.answers[question.correct]}`;
+                status.className = 'status-message status-success';
+            } else if (triviaGameState.playerAnswers[gameState.peerId]) {
+                status.textContent = 'Answer submitted! Waiting for others...';
+                status.className = 'status-message status-info';
+            } else {
+                status.textContent = 'Choose your answer!';
+                status.className = 'status-message status-info';
+            }
+        }
+
+        function startTriviaTimer() {
+            if (triviaGameState.timer) clearInterval(triviaGameState.timer);
+
+            triviaGameState.timer = setInterval(() => {
+                triviaGameState.timeLeft--;
+
+                // Update timer display on host screen
+                document.getElementById('triviaTimer').textContent = triviaGameState.timeLeft;
+
+                if (triviaGameState.timeLeft <= 0) {
+                    clearInterval(triviaGameState.timer);
+                    revealTriviaAnswer();
+                }
+
+                broadcastGameUpdate();
+            }, 1000);
+        }
+
+        function submitTriviaAnswer(answerIndex) {
+            if (triviaGameState.playerAnswers[gameState.peerId]) return;
+
+            const timestamp = Date.now();
+            triviaGameState.playerAnswers[gameState.peerId] = {
+                answer: answerIndex,
+                timestamp: timestamp
+            };
+
+            renderTriviaQuestion();
+
+            // Send to host if not host
+            if (!gameState.isHost) {
+                broadcast({
+                    type: 'triviaAnswer',
+                    playerId: gameState.peerId,
+                    answer: answerIndex,
+                    timestamp: timestamp
+                });
+            } else {
+                // Host submitted answer, check if all players answered
+                checkAllPlayersAnswered();
+            }
+        }
+
+        function handleTriviaAnswer(playerId, answer, timestamp) {
+            if (!gameState.isHost) return;
+
+            triviaGameState.playerAnswers[playerId] = {
+                answer: answer,
+                timestamp: timestamp
+            };
+
+            broadcastGameUpdate();
+
+            // Check if all players have answered
+            checkAllPlayersAnswered();
+        }
+
+        function checkAllPlayersAnswered() {
+            if (!gameState.isHost) return;
+            if (triviaGameState.revealed) return;
+
+            const totalPlayers = Object.keys(gameState.players).length;
+            const answeredPlayers = Object.keys(triviaGameState.playerAnswers).length;
+
+            if (answeredPlayers >= totalPlayers) {
+                // All players have answered, reveal the answer
+                clearInterval(triviaGameState.timer);
+                revealTriviaAnswer();
+            }
+        }
+
+        function revealTriviaAnswer() {
+            if (!gameState.isHost) return;
+
+            triviaGameState.revealed = true;
+            const question = triviaGameState.questions[triviaGameState.currentQuestionIndex];
+
+            // Get all correct answers sorted by response time (fastest first)
+            const correctAnswers = Object.keys(triviaGameState.playerAnswers)
+                .map(playerId => ({
+                    playerId: playerId,
+                    answer: triviaGameState.playerAnswers[playerId].answer,
+                    timestamp: triviaGameState.playerAnswers[playerId].timestamp
+                }))
+                .filter(player => player.answer === question.correct)
+                .sort((a, b) => a.timestamp - b.timestamp);
+
+            // Award points based on speed ranking
+            // Scoring system: 1st = 1000pts, 2nd = 800pts, 3rd = 600pts, 4th = 400pts, 5th = 300pts, 6th+ = 200pts
+            const pointsTable = [1000, 800, 600, 400, 300, 200];
+
+            correctAnswers.forEach((player, index) => {
+                const points = index < pointsTable.length ? pointsTable[index] : 200;
+                gameState.scores[player.playerId] = (gameState.scores[player.playerId] || 0) + points;
+            });
+
+            // Update host's display
+            renderTriviaQuestion();
+            updateScoreboard('triviaScoreboard');
+
+            // Send to clients
+            broadcastGameUpdate();
+        }
+
+        function nextTriviaQuestion() {
+            if (!gameState.isHost) return;
+
+            triviaGameState.currentQuestionIndex++;
+            
+            if (triviaGameState.currentQuestionIndex >= triviaGameState.questions.length) {
+                endGame();
+            } else {
+                loadTriviaQuestion();
+            }
+        }
+
+        function updateTriviaGame(data) {
+            triviaGameState = data;
+            renderTriviaQuestion();
+            updateScoreboard('triviaScoreboard');
+        }
+
+        // ===== CODENAMES GAME =====
+        let wordwebGameState = {
+            words: ['AFRICA', 'AGENT', 'AIR', 'ALIEN', 'ALPS', 'AMAZON', 'AMBULANCE', 'AMERICA', 'ANGEL', 'ANTARCTICA',
+                    'APPLE', 'ARM', 'ATLANTIS', 'AUSTRALIA', 'AZTEC', 'BACK', 'BALL', 'BAND', 'BANK', 'BAR',
+                    'BARK', 'BAT', 'BATTERY', 'BEACH', 'BEAR', 'BEAT', 'BED', 'BEIJING', 'BELL', 'BELT',
+                    'BERLIN', 'BERMUDA', 'BERRY', 'BILL', 'BLOCK', 'BOARD', 'BOLT', 'BOMB', 'BOND', 'BOOM',
+                    'BOOT', 'BOTTLE', 'BOW', 'BOX', 'BRIDGE', 'BRUSH', 'BUCK', 'BUFFALO', 'BUG', 'BUGLE',
+                    'BUTTON', 'CALF', 'CANADA', 'CAP', 'CAPITAL', 'CAR', 'CARD', 'CARROT', 'CASINO', 'CAST',
+                    'CAT', 'CELL', 'CENTAUR', 'CENTER', 'CHAIR', 'CHANGE', 'CHARGE', 'CHECK', 'CHEST', 'CHICK',
+                    'CHINA', 'CHOCOLATE', 'CHURCH', 'CIRCLE', 'CLIFF', 'CLOAK', 'CLUB', 'CODE', 'COLD', 'COMIC',
+                    'COMPOUND', 'CONCERT', 'CONDUCTOR', 'CONTRACT', 'COOK', 'COPPER', 'COTTON', 'COURT', 'COVER', 'CRANE',
+                    'CRASH', 'CRICKET', 'CROSS', 'CROWN', 'CYCLE', 'CZECH', 'DANCE', 'DATE', 'DAY', 'DEATH',
+                    'DECK', 'DEGREE', 'DIAMOND', 'DICE', 'DINOSAUR', 'DISEASE', 'DOCTOR', 'DOG', 'DRAFT', 'DRAGON',
+                    'DRESS', 'DRILL', 'DROP', 'DUCK', 'DWARF', 'EAGLE', 'EGYPT', 'EMBASSY', 'ENGINE', 'ENGLAND',
+                    'EUROPE', 'EYE', 'FACE', 'FAIR', 'FALL', 'FAN', 'FENCE', 'FIELD', 'FIGHTER', 'FIGURE',
+                    'FILE', 'FILM', 'FIRE', 'FISH', 'FLUTE', 'FLY', 'FOOT', 'FORCE', 'FOREST', 'FORK',
+                    'FRANCE', 'GAME', 'GAS', 'GENIUS', 'GERMANY', 'GHOST', 'GIANT', 'GLASS', 'GLOVE', 'GOLD',
+                    'GRACE', 'GRASS', 'GREECE', 'GREEN', 'GROUND', 'HAM', 'HAND', 'HAWK', 'HEAD', 'HEART',
+                    'HELICOPTER', 'HIMALAYAS', 'HOLE', 'HOLLYWOOD', 'HONEY', 'HOOD', 'HOOK', 'HORN', 'HORSE', 'HORSESHOE',
+                    'HOSPITAL', 'HOTEL', 'ICE', 'INDIA', 'IRON', 'IVORY', 'JACK', 'JAM', 'JET', 'JUPITER',
+                    'KANGAROO', 'KETCHUP', 'KEY', 'KID', 'KING', 'KIWI', 'KNIFE', 'KNIGHT', 'LAB', 'LAP',
+                    'LASER', 'LAWYER', 'LEAD', 'LEMON', 'LEPRECHAUN', 'LIFE', 'LIGHT', 'LIMOUSINE', 'LINE', 'LINK',
+                    'LION', 'LITTER', 'LOCH NESS', 'LOCK', 'LOG', 'LONDON', 'LUCK', 'MAIL', 'MAMMOTH', 'MAPLE',
+                    'MARBLE', 'MARCH', 'MASS', 'MATCH', 'MERCURY', 'MEXICO', 'MICROSCOPE', 'MILLIONAIRE', 'MINE', 'MINT',
+                    'MISSILE', 'MODEL', 'MOLE', 'MOON', 'MOSCOW', 'MOUNT', 'MOUSE', 'MOUTH', 'MUG', 'NAIL',
+                    'NEEDLE', 'NET', 'NEW YORK', 'NIGHT', 'NINJA', 'NOTE', 'NOVEL', 'NURSE', 'NUT', 'OCTOPUS',
+                    'OIL', 'OLIVE', 'OLYMPUS', 'OPERA', 'ORANGE', 'ORGAN', 'PALM', 'PAN', 'PANTS', 'PAPER',
+                    'PARACHUTE', 'PARK', 'PART', 'PASS', 'PASTE', 'PENGUIN', 'PHOENIX', 'PIANO', 'PIE', 'PILOT',
+                    'PIN', 'PIPE', 'PIRATE', 'PISTOL', 'PIT', 'PITCH', 'PLANE', 'PLASTIC', 'PLATE', 'PLATYPUS',
+                    'PLAY', 'PLOT', 'POINT', 'POISON', 'POLE', 'POLICE', 'POOL', 'PORT', 'POST', 'POUND',
+                    'PRESS', 'PRINCESS', 'PUMPKIN', 'PUPIL', 'PYRAMID', 'QUEEN', 'RABBIT', 'RACKET', 'RAY', 'REVOLUTION',
+                    'RING', 'ROBIN', 'ROBOT', 'ROCK', 'ROME', 'ROOT', 'ROSE', 'ROULETTE', 'ROUND', 'ROW',
+                    'RULER', 'SATELLITE', 'SATURN', 'SCALE', 'SCHOOL', 'SCIENTIST', 'SCORPION', 'SCREEN', 'SCUBA', 'SEAL',
+                    'SERVER', 'SHADOW', 'SHAKESPEARE', 'SHARK', 'SHIP', 'SHOE', 'SHOP', 'SHOT', 'SINK', 'SKYSCRAPER',
+                    'SLIP', 'SLUG', 'SMUGGLER', 'SNOW', 'SOCK', 'SOLDIER', 'SOUL', 'SOUND', 'SPACE', 'SPELL',
+                    'SPIDER', 'SPIKE', 'SPINE', 'SPOT', 'SPRING', 'SPY', 'SQUARE', 'STADIUM', 'STAFF', 'STAR',
+                    'STATE', 'STICK', 'STOCK', 'STRAW', 'STREAM', 'STRIKE', 'STRING', 'SUB', 'SUIT', 'SUPERHERO',
+                    'SWING', 'SWITCH', 'TABLE', 'TABLET', 'TAG', 'TAIL', 'TAP', 'TEACHER', 'TELESCOPE', 'TEMPLE',
+                    'TEXAS', 'THIEF', 'THUMB', 'TICK', 'TIE', 'TIME', 'TOKYO', 'TOOTH', 'TORCH', 'TOWER',
+                    'TRACK', 'TRAIN', 'TRIANGLE', 'TRIP', 'TRUNK', 'TUBE', 'TURKEY', 'UNDERTAKER', 'UNICORN', 'VACUUM',
+                    'VAN', 'VET', 'WAKE', 'WALL', 'WAR', 'WASHER', 'WASHINGTON', 'WATCH', 'WATER', 'WAVE',
+                    'WEB', 'WELL', 'WHALE', 'WHIP', 'WIND', 'WITCH', 'WORM', 'YARD'],
+            grid: [],
+            teams: {
+                teamA: [],  // Player IDs on Team A
+                teamB: []   // Player IDs on Team B
+            },
+            spymasters: {
+                teamA: null,  // Spymaster for Team A
+                teamB: null   // Spymaster for Team B
+            },
+            currentTeam: 'teamA',  // 'teamA' or 'teamB'
+            wordsRemaining: { teamA: 0, teamB: 0, neutral: 0 },
+            currentClue: null,  // { word: 'example', number: 3 }
+            guessesLeft: 0,
+            gameOver: false,
+            winner: null
+        };
+
+        function showTeamSelectionForCodenames() {
+            if (!gameState.isHost) return;
+
+            gameState.currentGame = 'wordweb';
+            showTeamSelectionScreen();
+        }
+
+        function startCodenamesWithTeams() {
+            // Validate teams
+            if (teamSelection.teamA.length < 2 || teamSelection.teamB.length < 2) {
+                alert('Each team must have at least 2 players (1 spymaster + 1 operative)!');
+                return;
+            }
+
+            // Validate spymasters are selected
+            if (!teamSelection.spymasterA || !teamSelection.spymasterB) {
+                alert('Please select a Spymaster for each team!');
+                return;
+            }
+
+            // Initialize game with manual team assignment
+            const gameData = initWordwebGameWithTeams(
+                teamSelection.teamA,
+                teamSelection.teamB,
+                teamSelection.spymasterA,
+                teamSelection.spymasterB
+            );
+
+            broadcast({
+                type: 'startGame',
+                game: 'wordweb',
+                gameData: gameData
+            });
+        }
+
+        function initWordwebGameWithTeams(teamAPlayers, teamBPlayers, spymasterA, spymasterB) {
+            showScreen('wordwebScreen');
+
+            // Assign teams
+            wordwebGameState.teams.teamA = teamAPlayers;
+            wordwebGameState.teams.teamB = teamBPlayers;
+
+            // Assign spymasters from selection
+            wordwebGameState.spymasters.teamA = spymasterA;
+            wordwebGameState.spymasters.teamB = spymasterB;
+
+            // Generate grid - Codenames has 9 for one team, 8 for other, 7 neutral, 1 assassin
+            wordwebGameState.grid = [];
+            const shuffled = [...wordwebGameState.words].sort(() => Math.random() - 0.5).slice(0, 25);
+
+            // Randomly decide which team gets 9 cards (starting team)
+            const firstTeam = Math.random() < 0.5 ? 'teamA' : 'teamB';
+            wordwebGameState.currentTeam = firstTeam;
+
+            for (let i = 0; i < 25; i++) {
+                let type;
+                if (i < 9) {
+                    type = firstTeam; // First team gets 9 words
+                } else if (i < 17) {
+                    type = firstTeam === 'teamA' ? 'teamB' : 'teamA'; // Other team gets 8 words
+                } else if (i < 24) {
+                    type = 'neutral'; // 7 neutral
+                } else {
+                    type = 'assassin'; // 1 assassin
+                }
+
+                wordwebGameState.grid.push({
+                    word: shuffled[i],
+                    type: type,
+                    revealed: false
+                });
+            }
+
+            // Shuffle grid
+            wordwebGameState.grid.sort(() => Math.random() - 0.5);
+
+            // Count words remaining
+            wordwebGameState.wordsRemaining = {
+                teamA: wordwebGameState.grid.filter(c => c.type === 'teamA').length,
+                teamB: wordwebGameState.grid.filter(c => c.type === 'teamB').length,
+                neutral: 7
+            };
+
+            wordwebGameState.currentClue = null;
+            wordwebGameState.guessesLeft = 0;
+            wordwebGameState.gameOver = false;
+            wordwebGameState.winner = null;
+
+            if (gameState.isHost) {
+                document.getElementById('wordwebHostControls').style.display = 'block';
+            }
+
+            updateCodenamesUI();
+
+            return wordwebGameState;
+        }
+
+        function initWordwebGame() {
+            // This is called for backward compatibility - redirect to team selection
+            showTeamSelectionForCodenames();
+        }
+
+        function loadWordwebGame(data) {
+            wordwebGameState = data;
+            updateCodenamesUI();
+        }
+
+        function updateCodenamesUI() {
+            renderWordwebGrid();
+            renderSpymasterKey();
+            updateWordwebTeamDisplay();
+            updateClueDisplay();
+            updateSpymasterSection();
+        }
+
+        function renderSpymasterKey() {
+            const keyGrid = document.getElementById('spymasterKeyGrid');
+            const keySection = document.getElementById('spymasterKey');
+
+            // Check if current player is a spymaster
+            const isSpymaster = gameState.peerId === wordwebGameState.spymasters.teamA ||
+                               gameState.peerId === wordwebGameState.spymasters.teamB;
+
+            if (isSpymaster) {
+                keySection.style.display = 'block';
+                keyGrid.innerHTML = '';
+
+                wordwebGameState.grid.forEach(cell => {
+                    const keyCard = document.createElement('div');
+                    keyCard.style.cssText = 'padding: 8px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 0.85em;';
+                    keyCard.textContent = cell.word;
+
+                    if (cell.type === 'teamA') {
+                        keyCard.style.background = '#667eea';
+                        keyCard.style.color = 'white';
+                    } else if (cell.type === 'teamB') {
+                        keyCard.style.background = '#764ba2';
+                        keyCard.style.color = 'white';
+                    } else if (cell.type === 'neutral') {
+                        keyCard.style.background = '#f0f0f0';
+                        keyCard.style.color = '#333';
+                    } else if (cell.type === 'assassin') {
+                        keyCard.style.background = '#000';
+                        keyCard.style.color = 'white';
+                    }
+
+                    if (cell.revealed) {
+                        keyCard.style.opacity = '0.4';
+                        keyCard.style.textDecoration = 'line-through';
+                    }
+
+                    keyGrid.appendChild(keyCard);
+                });
+            } else {
+                keySection.style.display = 'none';
+            }
+        }
+
+        function renderWordwebGrid() {
+            const grid = document.getElementById('wordwebGrid');
+            grid.innerHTML = '';
+
+            wordwebGameState.grid.forEach((cell, index) => {
+                const card = document.createElement('div');
+                card.className = 'word-card';
+                card.textContent = cell.word;
+
+                if (cell.revealed) {
+                    // Show color based on type
+                    if (cell.type === 'teamA') {
+                        card.style.background = '#667eea';
+                        card.style.color = 'white';
+                    } else if (cell.type === 'teamB') {
+                        card.style.background = '#764ba2';
+                        card.style.color = 'white';
+                    } else if (cell.type === 'neutral') {
+                        card.style.background = '#f0f0f0';
+                        card.style.color = '#333';
+                    } else if (cell.type === 'assassin') {
+                        card.style.background = '#000';
+                        card.style.color = 'white';
+                    }
+                } else {
+                    // Check if player is an operative on current team and can click
+                    const canClick = isCurrentTeamOperative() && !wordwebGameState.gameOver;
+                    if (canClick && wordwebGameState.guessesLeft > 0) {
+                        card.onclick = () => selectWord(index);
+                        card.style.cursor = 'pointer';
+                    }
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        function isCurrentTeamOperative() {
+            const currentTeam = wordwebGameState.currentTeam;
+            const isOnCurrentTeam = wordwebGameState.teams[currentTeam].includes(gameState.peerId);
+            const isSpymaster = gameState.peerId === wordwebGameState.spymasters[currentTeam];
+            return isOnCurrentTeam && !isSpymaster;
+        }
+
+        function isCurrentTeamSpymaster() {
+            const currentTeam = wordwebGameState.currentTeam;
+            return gameState.peerId === wordwebGameState.spymasters[currentTeam];
+        }
+
+        function updateSpymasterSection() {
+            const section = document.getElementById('spymasterClueSection');
+
+            if (isCurrentTeamSpymaster() && !wordwebGameState.currentClue && !wordwebGameState.gameOver) {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function updateClueDisplay() {
+            const display = document.getElementById('currentClueDisplay');
+            const clueText = document.getElementById('currentClueText');
+            const guessesRem = document.getElementById('guessesRemaining');
+
+            if (wordwebGameState.currentClue && wordwebGameState.guessesLeft > 0) {
+                display.style.display = 'block';
+                clueText.textContent = `${wordwebGameState.currentClue.word} (${wordwebGameState.currentClue.number})`;
+                guessesRem.textContent = wordwebGameState.guessesLeft;
+            } else {
+                display.style.display = 'none';
+            }
+        }
+
+        function giveClue() {
+            if (!gameState.isHost) {
+                // Send clue to host
+                const word = document.getElementById('clueWord').value.trim().toUpperCase();
+                const number = parseInt(document.getElementById('clueNumber').value);
+
+                if (!word || !number || number < 1 || number > 9) {
+                    alert('Please enter a valid one-word clue and a number between 1-9');
+                    return;
+                }
+
+                broadcast({
+                    type: 'codenamesClue',
+                    senderId: gameState.peerId,
+                    word: word,
+                    number: number
+                });
+
+                return;
+            }
+
+            handleCodenamesClue(null,
+                document.getElementById('clueWord').value.trim().toUpperCase(),
+                parseInt(document.getElementById('clueNumber').value)
+            );
+        }
+
+        function handleCodenamesClue(playerId, word, number) {
+            if (!gameState.isHost) return;
+
+            if (!word || !number || number < 1 || number > 9) {
+                return;
+            }
+
+            wordwebGameState.currentClue = { word, number };
+            wordwebGameState.guessesLeft = number + 1; // Can make one extra guess
+
+            // Clear inputs
+            document.getElementById('clueWord').value = '';
+            document.getElementById('clueNumber').value = '';
+
+            broadcastGameUpdate();
+            updateCodenamesUI();
+        }
+
+        function selectWord(index) {
+            if (wordwebGameState.grid[index].revealed) return;
+            if (wordwebGameState.guessesLeft <= 0) return;
+            if (!isCurrentTeamOperative()) return;
+
+            if (gameState.isHost) {
+                handleWordwebSelect(index);
+            } else {
+                broadcast({
+                    type: 'wordwebSelect',
+                    index: index
+                });
+            }
+        }
+
+        function handleWordwebSelect(index) {
+            if (!gameState.isHost) return;
+            if (wordwebGameState.grid[index].revealed) return;
+
+            wordwebGameState.grid[index].revealed = true;
+            const cell = wordwebGameState.grid[index];
+
+            // Decrease guesses left
+            wordwebGameState.guessesLeft--;
+
+            // Update words remaining
+            if (cell.type === 'teamA') {
+                wordwebGameState.wordsRemaining.teamA--;
+            } else if (cell.type === 'teamB') {
+                wordwebGameState.wordsRemaining.teamB--;
+            } else if (cell.type === 'neutral') {
+                wordwebGameState.wordsRemaining.neutral--;
+            }
+
+            // Check win/loss conditions
+            if (cell.type === 'assassin') {
+                // Team that picked assassin loses
+                wordwebGameState.gameOver = true;
+                wordwebGameState.winner = wordwebGameState.currentTeam === 'teamA' ? 'teamB' : 'teamA';
+                setTimeout(() => endGame(), 2000);
+            } else if (wordwebGameState.wordsRemaining.teamA === 0) {
+                // Team A wins
+                wordwebGameState.gameOver = true;
+                wordwebGameState.winner = 'teamA';
+                setTimeout(() => endGame(), 2000);
+            } else if (wordwebGameState.wordsRemaining.teamB === 0) {
+                // Team B wins
+                wordwebGameState.gameOver = true;
+                wordwebGameState.winner = 'teamB';
+                setTimeout(() => endGame(), 2000);
+            } else if (cell.type !== wordwebGameState.currentTeam || wordwebGameState.guessesLeft === 0) {
+                // Wrong team's word or out of guesses - end turn
+                switchWordwebTeam();
+            }
+
+            broadcastGameUpdate();
+            updateCodenamesUI();
+        }
+
+        function endTurn() {
+            if (!gameState.isHost) return;
+            switchWordwebTeam();
+        }
+
+        function switchWordwebTeam() {
+            wordwebGameState.currentTeam = wordwebGameState.currentTeam === 'teamA' ? 'teamB' : 'teamA';
+            wordwebGameState.currentClue = null;
+            wordwebGameState.guessesLeft = 0;
+
+            if (gameState.isHost) {
+                broadcastGameUpdate();
+            }
+
+            updateCodenamesUI();
+        }
+
+        function updateWordwebTeamDisplay() {
+            const teamName = wordwebGameState.currentTeam === 'teamA' ? 'Team A' : 'Team B';
+            const teamDiv = document.getElementById('wordwebTeam');
+            teamDiv.textContent = `${teamName}'s Turn`;
+            teamDiv.className = 'team-indicator';
+            teamDiv.style.background = wordwebGameState.currentTeam === 'teamA' ? '#667eea' : '#764ba2';
+
+            const scoreboard = document.getElementById('wordwebScoreboard');
+
+            // Build Team A members list
+            let teamAMembers = wordwebGameState.teams.teamA.map(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = playerId === wordwebGameState.spymasters.teamA;
+                return player ? (player.name + (isSpymaster ? ' 👁️' : '')) : 'Unknown';
+            }).join(', ');
+
+            // Build Team B members list
+            let teamBMembers = wordwebGameState.teams.teamB.map(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = playerId === wordwebGameState.spymasters.teamB;
+                return player ? (player.name + (isSpymaster ? ' 👁️' : '')) : 'Unknown';
+            }).join(', ');
+
+            scoreboard.innerHTML = `
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">Team A</span>
+                        <span style="color: #667eea; font-weight: bold;">${wordwebGameState.wordsRemaining.teamA} words left</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamAMembers}</div>
+                </div>
+                <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                        <span style="font-weight: bold;">Team B</span>
+                        <span style="color: #764ba2; font-weight: bold;">${wordwebGameState.wordsRemaining.teamB} words left</span>
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">${teamBMembers}</div>
+                </div>
+            `;
+
+            // Update status message
+            const status = document.getElementById('wordwebStatus');
+            if (wordwebGameState.gameOver) {
+                const winnerName = wordwebGameState.winner === 'teamA' ? 'Team A' : 'Team B';
+                status.textContent = `🎉 ${winnerName} Wins!`;
+                status.className = 'status-message status-success';
+            } else if (isCurrentTeamSpymaster()) {
+                status.textContent = 'You are the Spymaster! Give your team a clue.';
+                status.className = 'status-message status-info';
+            } else if (isCurrentTeamOperative()) {
+                if (wordwebGameState.currentClue) {
+                    status.textContent = 'Your Spymaster gave a clue! Click words to guess.';
+                    status.className = 'status-message status-success';
+                } else {
+                    status.textContent = 'Waiting for your Spymaster to give a clue...';
+                    status.className = 'status-message status-warning';
+                }
+            } else {
+                status.textContent = 'Spectating: Watch the other team play.';
+                status.className = 'status-message status-warning';
+            }
+        }
+
+        function updateWordwebGame(data) {
+            wordwebGameState = data;
+            updateCodenamesUI();
+        }
+
+        function toggleCodenamesRules() {
+            const rulesSection = document.getElementById('codenamesRules');
+            if (rulesSection.style.display === 'none') {
+                rulesSection.style.display = 'block';
+            } else {
+                rulesSection.style.display = 'none';
+            }
+        }
+
+        // ===== TRUTH & LIE GAME =====
+        let truthlieGameState = {
+            rounds: [
+                {
+                    topic: "About TDS",
+                    statements: [
+                        { text: "TDS handles over 10,000 disputes annually", truth: true },
+                        { text: "TDS was founded in 2003", truth: true },
+                        { text: "TDS only operates in England", truth: false }
+                    ]
+                },
+                {
+                    topic: "Tech Facts",
+                    statements: [
+                        { text: "The first computer bug was an actual moth", truth: true },
+                        { text: "CAPTCHA stands for 'Computer Automated Public Test'", truth: false },
+                        { text: "The first domain ever registered was Symbolics.com", truth: true }
+                    ]
+                },
+                {
+                    topic: "Pop Culture",
+                    statements: [
+                        { text: "The first YouTube video was uploaded in 2005", truth: true },
+                        { text: "Netflix started as a DVD rental service", truth: true },
+                        { text: "The iPhone was the first smartphone ever made", truth: false }
+                    ]
+                },
+                {
+                    topic: "Office Life",
+                    statements: [
+                        { text: "The average office worker spends 5 hours a day in meetings", truth: false },
+                        { text: "Standing desks burn about 50 extra calories per hour", truth: true },
+                        { text: "Monday is the most productive day of the week", truth: true }
+                    ]
+                },
+                {
+                    topic: "Random Facts",
+                    statements: [
+                        { text: "Honey never spoils", truth: true },
+                        { text: "Bananas are berries but strawberries aren't", truth: true },
+                        { text: "Goldfish have a 3-second memory", truth: false }
+                    ]
+                }
+            ],
+            currentRoundIndex: 0,
+            votes: {},
+            revealed: false
+        };
+
+        function initTruthlieGame() {
+            showScreen('truthlieScreen');
+            
+            truthlieGameState.currentRoundIndex = 0;
+            truthlieGameState.votes = {};
+            truthlieGameState.revealed = false;
+            
+            if (gameState.isHost) {
+                document.getElementById('truthlieHostControls').style.display = 'block';
+            }
+
+            renderTruthlieRound();
+            
+            return truthlieGameState;
+        }
+
+        function loadTruthlieGame(data) {
+            truthlieGameState = data;
+            renderTruthlieRound();
+        }
+
+        function renderTruthlieRound() {
+            const round = truthlieGameState.rounds[truthlieGameState.currentRoundIndex];
+            
+            document.getElementById('truthliePlayer').textContent = round.topic;
+            
+            const container = document.getElementById('truthlieStatements');
+            container.innerHTML = '';
+
+            round.statements.forEach((statement, index) => {
+                const card = document.createElement('div');
+                card.className = 'statement-card';
+                
+                if (truthlieGameState.revealed) {
+                    const emoji = statement.truth ? '✅' : '❌';
+                    card.textContent = `${emoji} ${statement.text}`;
+                    card.style.background = statement.truth ? '#E8F5E9' : '#FFEBEE';
+                    card.style.color = statement.truth ? '#388E3C' : '#C62828';
+                } else {
+                    card.textContent = `${index + 1}. ${statement.text}`;
+                    if (truthlieGameState.votes[gameState.peerId] === index) {
+                        card.classList.add('selected');
+                    }
+                    card.onclick = () => voteForLie(index);
+                }
+
+                container.appendChild(card);
+            });
+
+            const status = document.getElementById('truthlieStatus');
+            if (truthlieGameState.revealed) {
+                status.textContent = 'Answer revealed! Moving to next round...';
+                status.className = 'status-message status-success';
+            } else {
+                status.textContent = 'Which statement is the LIE?';
+                status.className = 'status-message status-info';
+            }
+        }
+
+        function voteForLie(index) {
+            if (truthlieGameState.revealed) return;
+
+            truthlieGameState.votes[gameState.peerId] = index;
+            renderTruthlieRound();
+
+            if (!gameState.isHost) {
+                broadcast({
+                    type: 'truthlieVote',
+                    playerId: gameState.peerId,
+                    vote: index
+                });
+            }
+        }
+
+        function handleTruthlieVote(playerId, vote) {
+            if (!gameState.isHost) return;
+            
+            truthlieGameState.votes[playerId] = vote;
+            broadcastGameUpdate();
+        }
+
+        function revealTruthlieAnswer() {
+            if (!gameState.isHost) return;
+
+            truthlieGameState.revealed = true;
+            const round = truthlieGameState.rounds[truthlieGameState.currentRoundIndex];
+            const lieIndex = round.statements.findIndex(s => !s.truth);
+            
+            // Award points
+            Object.keys(truthlieGameState.votes).forEach(playerId => {
+                if (truthlieGameState.votes[playerId] === lieIndex) {
+                    gameState.scores[playerId] = (gameState.scores[playerId] || 0) + 100;
+                }
+            });
+
+            broadcastGameUpdate();
+            renderTruthlieRound();
+            updateScoreboard('truthlieScoreboard');
+        }
+
+        function nextTruthlieRound() {
+            if (!gameState.isHost) return;
+
+            truthlieGameState.currentRoundIndex++;
+            
+            if (truthlieGameState.currentRoundIndex >= truthlieGameState.rounds.length) {
+                endGame();
+            } else {
+                truthlieGameState.votes = {};
+                truthlieGameState.revealed = false;
+                broadcastGameUpdate();
+                renderTruthlieRound();
+            }
+        }
+
+        function updateTruthlieGame(data) {
+            truthlieGameState = data;
+            renderTruthlieRound();
+            updateScoreboard('truthlieScoreboard');
+        }
+
+        // ===== QUICK DRAW GAME =====
+        let quickdrawGameState = {
+            prompts: [
+                // Simple Objects
+                'House', 'Cat', 'Car', 'Tree', 'Phone', 'Computer', 'Pizza', 'Sun', 'Flower', 'Rocket',
+                'Dog', 'Bird', 'Fish', 'Boat', 'Bicycle', 'Clock', 'Star', 'Moon', 'Cloud', 'Rainbow',
+
+                // Animals
+                'Elephant', 'Giraffe', 'Penguin', 'Octopus', 'Dinosaur', 'Chicken', 'Cow', 'Pig', 'Sheep',
+                'Kangaroo', 'Turtle', 'Flamingo', 'Snail', 'Butterfly', 'Ladybug', 'Crab', 'Whale', 'Dolphin',
+
+                // Food & Drink
+                'Hamburger', 'Hot Dog', 'Sushi', 'Taco', 'Ice Cream Cone', 'Birthday Cake', 'Donut',
+                'Banana', 'Pineapple', 'Watermelon', 'Coffee Cup', 'Tea Pot', 'Sandwich', 'Popcorn',
+
+                // Office & Work
+                'Office Chair', 'Laptop', 'Coffee Mug', 'Stapler', 'Filing Cabinet', 'Desk Lamp',
+                'Printer', 'Calculator', 'Sticky Notes', 'Water Cooler', 'Conference Room', 'Whiteboard',
+                'Tie', 'Briefcase', 'Name Tag', 'Keyboard', 'Mouse Pad', 'Headphones',
+
+                // Household Items
+                'Toaster', 'Microwave', 'Toilet', 'Shower', 'Washing Machine', 'Vacuum Cleaner',
+                'Ceiling Fan', 'Couch', 'Pillow', 'Blanket', 'Lamp', 'TV Remote', 'Toothbrush',
+
+                // Transportation
+                'Helicopter', 'Hot Air Balloon', 'Submarine', 'Skateboard', 'Scooter', 'Train',
+                'Airplane', 'UFO', 'Sailboat', 'Rollerblades', 'Shopping Cart',
+
+                // Sports & Activities
+                'Soccer Ball', 'Basketball Hoop', 'Tennis Racket', 'Golf Club', 'Bowling Pin',
+                'Dumbbell', 'Jump Rope', 'Frisbee', 'Yoga Mat', 'Running Shoe',
+
+                // Nature & Weather
+                'Lightning Bolt', 'Tornado', 'Volcano', 'Mountain', 'Cactus', 'Palm Tree', 'Snowman',
+                'Campfire', 'Tent', 'Beach Umbrella', 'Sunset',
+
+                // Funny/Silly
+                'Person Tripping', 'Someone Sneezing', 'Brain Freeze', 'Stuck in Traffic',
+                'Monday Morning', 'Forgot Password', 'Low Battery', 'Tangled Headphones', 'Autocorrect Fail',
+                'Stepping on LEGO', 'Burned Toast', 'Someone Yawning', 'Slipping on Banana Peel',
+                'Buffering Internet', 'Zoom Meeting', 'Email Overload', 'Coffee Spill', 'Awkward Wave',
+
+                // Random Objects
+                'Umbrella', 'Glasses', 'Crown', 'Trophy', 'Guitar', 'Drum', 'Piano', 'Microphone',
+                'Camera', 'Telescope', 'Magnifying Glass', 'Key', 'Lock', 'Lightbulb', 'Battery',
+                'Balloon', 'Gift Box', 'Party Hat', 'Candle', 'Mirror', 'Scissors', 'Ruler',
+
+                // Actions/Concepts (challenging!)
+                'Working From Home', 'Video Call', 'Online Shopping', 'Social Media', 'Password Reset',
+                'File Upload', 'Screen Share', 'Mute Button', 'Deadline', 'Brainstorming',
+                'Team Meeting', 'Lunch Break', 'Happy Hour', 'Out of Office'
+            ],
+            currentPrompt: '',
+            currentArtist: null,
+            timeLeft: 60,
+            timer: null,
+            guesses: {},
+            teamMode: false,
+            teams: { teamA: [], teamB: [] },
+            currentTeam: 'teamA',
+            teamScores: { teamA: 0, teamB: 0 },
+            roundsPlayed: 0,
+            guessFeed: [],
+            correctGuess: null, // { playerId, playerName, word }
+            revealed: false // true if time ran out and answer was revealed
+        };
+
+        let canvas, ctx;
+        let isDrawingOnCanvas = false;
+        let currentColor = '#000';
+        let lastX = 0;
+        let lastY = 0;
+
+        // Team selection state
+        let teamSelection = {
+            teamA: [],
+            teamB: [],
+            spymasterA: null,  // For Codenames
+            spymasterB: null   // For Codenames
+        };
+
+        function showTeamSelectionScreen() {
+            showScreen('teamSelectionScreen');
+
+            // Initialize team selection with all players unassigned
+            teamSelection.teamA = [];
+            teamSelection.teamB = [];
+            teamSelection.spymasterA = null;
+            teamSelection.spymasterB = null;
+
+            renderTeamSelection();
+
+            // Broadcast to all clients to show the team selection screen
+            if (gameState.isHost) {
+                broadcast({
+                    type: 'showTeamSelection',
+                    game: gameState.currentGame
+                });
+            }
+        }
+
+        function renderTeamSelection() {
+            const teamAList = document.getElementById('teamAList');
+            const teamBList = document.getElementById('teamBList');
+            const unassignedList = document.getElementById('unassignedList');
+
+            teamAList.innerHTML = '';
+            teamBList.innerHTML = '';
+            unassignedList.innerHTML = '';
+
+            const allPlayerIds = Object.keys(gameState.players);
+            const unassigned = allPlayerIds.filter(id =>
+                !teamSelection.teamA.includes(id) && !teamSelection.teamB.includes(id)
+            );
+
+            const isHost = gameState.isHost;
+            const isCodenames = gameState.currentGame === 'wordweb';
+            const isQuickDraw = gameState.currentGame === 'quickdraw-teams';
+
+            // Update title based on game type
+            const titleElement = document.getElementById('teamSelectionTitle');
+            if (titleElement) {
+                if (isCodenames) {
+                    titleElement.textContent = '🕵️ Codenames - Team Selection';
+                } else if (isQuickDraw) {
+                    titleElement.textContent = '🎨 Quick Draw Teams - Team Selection';
+                } else {
+                    titleElement.textContent = '🎨 Team Selection';
+                }
+            }
+
+            // Show/hide How to Play button for Codenames
+            const howToPlayButton = document.getElementById('codenamesHowToPlayButton');
+            if (howToPlayButton) howToPlayButton.style.display = isCodenames ? 'block' : 'none';
+
+            // Show/hide spymaster selection for Codenames
+            const teamASpymasterSection = document.getElementById('teamASpymasterSection');
+            const teamBSpymasterSection = document.getElementById('teamBSpymasterSection');
+            if (teamASpymasterSection) teamASpymasterSection.style.display = isCodenames ? 'block' : 'none';
+            if (teamBSpymasterSection) teamBSpymasterSection.style.display = isCodenames ? 'block' : 'none';
+
+            // Populate spymaster dropdowns for Codenames
+            if (isCodenames) {
+                const teamASpymasterSelect = document.getElementById('teamASpymaster');
+                const teamBSpymasterSelect = document.getElementById('teamBSpymaster');
+
+                if (teamASpymasterSelect) {
+                    teamASpymasterSelect.innerHTML = '<option value="">Select Spymaster...</option>';
+                    teamSelection.teamA.forEach(playerId => {
+                        const player = gameState.players[playerId];
+                        const option = document.createElement('option');
+                        option.value = playerId;
+                        option.textContent = player.name;
+                        if (playerId === teamSelection.spymasterA) {
+                            option.selected = true;
+                        }
+                        teamASpymasterSelect.appendChild(option);
+                    });
+                    // Disable if not host
+                    teamASpymasterSelect.disabled = !isHost;
+                }
+
+                if (teamBSpymasterSelect) {
+                    teamBSpymasterSelect.innerHTML = '<option value="">Select Spymaster...</option>';
+                    teamSelection.teamB.forEach(playerId => {
+                        const player = gameState.players[playerId];
+                        const option = document.createElement('option');
+                        option.value = playerId;
+                        option.textContent = player.name;
+                        if (playerId === teamSelection.spymasterB) {
+                            option.selected = true;
+                        }
+                        teamBSpymasterSelect.appendChild(option);
+                    });
+                    // Disable if not host
+                    teamBSpymasterSelect.disabled = !isHost;
+                }
+            }
+
+            // Hide/show controls based on host status
+            const autoAssignBtn = document.getElementById('teamSelectionAutoAssign');
+            const controlButtons = document.getElementById('teamSelectionButtons');
+            if (autoAssignBtn) autoAssignBtn.style.display = isHost ? 'block' : 'none';
+            if (controlButtons) controlButtons.style.display = isHost ? 'block' : 'none';
+
+            // Render Team A
+            teamSelection.teamA.forEach(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = isCodenames && playerId === teamSelection.spymasterA;
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 10px; margin: 5px 0; background: white; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                item.innerHTML = `
+                    <span>${player.name}${player.isHost ? ' 👑' : ''}${isSpymaster ? ' 👁️' : ''}</span>
+                    ${isHost ? `<button onclick="removeFromTeam('${playerId}', 'teamA')" style="padding: 5px 10px;">Remove</button>` : ''}
+                `;
+                teamAList.appendChild(item);
+            });
+
+            // Render Team B
+            teamSelection.teamB.forEach(playerId => {
+                const player = gameState.players[playerId];
+                const isSpymaster = isCodenames && playerId === teamSelection.spymasterB;
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 10px; margin: 5px 0; background: white; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                item.innerHTML = `
+                    <span>${player.name}${player.isHost ? ' 👑' : ''}${isSpymaster ? ' 👁️' : ''}</span>
+                    ${isHost ? `<button onclick="removeFromTeam('${playerId}', 'teamB')" style="padding: 5px 10px;">Remove</button>` : ''}
+                `;
+                teamBList.appendChild(item);
+            });
+
+            // Render Unassigned
+            unassigned.forEach(playerId => {
+                const player = gameState.players[playerId];
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 10px; margin: 5px 0; background: white; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                item.innerHTML = `
+                    <span>${player.name}${player.isHost ? ' 👑' : ''}</span>
+                    ${isHost ? `<div>
+                        <button onclick="addToTeam('${playerId}', 'teamA')" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 3px; margin-right: 5px;">Team A</button>
+                        <button onclick="addToTeam('${playerId}', 'teamB')" style="padding: 5px 10px; background: #764ba2; color: white; border: none; border-radius: 3px;">Team B</button>
+                    </div>` : ''}
+                `;
+                unassignedList.appendChild(item);
+            });
+        }
+
+        function addToTeam(playerId, team) {
+            if (!gameState.isHost) return;
+
+            if (team === 'teamA') {
+                teamSelection.teamA.push(playerId);
+            } else {
+                teamSelection.teamB.push(playerId);
+            }
+            renderTeamSelection();
+            broadcastTeamSelection();
+        }
+
+        function removeFromTeam(playerId, team) {
+            if (!gameState.isHost) return;
+
+            if (team === 'teamA') {
+                teamSelection.teamA = teamSelection.teamA.filter(id => id !== playerId);
+                // Clear spymaster if this player was the spymaster
+                if (teamSelection.spymasterA === playerId) {
+                    teamSelection.spymasterA = null;
+                }
+            } else {
+                teamSelection.teamB = teamSelection.teamB.filter(id => id !== playerId);
+                // Clear spymaster if this player was the spymaster
+                if (teamSelection.spymasterB === playerId) {
+                    teamSelection.spymasterB = null;
+                }
+            }
+            renderTeamSelection();
+            broadcastTeamSelection();
+        }
+
+        function updateSpymaster(team, playerId) {
+            if (!gameState.isHost) return;
+
+            if (team === 'teamA') {
+                teamSelection.spymasterA = playerId || null;
+            } else if (team === 'teamB') {
+                teamSelection.spymasterB = playerId || null;
+            }
+
+            renderTeamSelection();
+            broadcastTeamSelection();
+        }
+
+        function autoAssignTeams() {
+            if (!gameState.isHost) return;
+
+            const allPlayerIds = Object.keys(gameState.players);
+            const shuffled = [...allPlayerIds].sort(() => Math.random() - 0.5);
+            const mid = Math.ceil(shuffled.length / 2);
+
+            teamSelection.teamA = shuffled.slice(0, mid);
+            teamSelection.teamB = shuffled.slice(mid);
+
+            // Auto-assign spymasters for Codenames
+            if (gameState.currentGame === 'wordweb') {
+                teamSelection.spymasterA = teamSelection.teamA[0];
+                teamSelection.spymasterB = teamSelection.teamB[0];
+            }
+
+            renderTeamSelection();
+            broadcastTeamSelection();
+        }
+
+        function broadcastTeamSelection() {
+            if (!gameState.isHost) return;
+
+            broadcast({
+                type: 'updateTeamSelection',
+                teamA: teamSelection.teamA,
+                teamB: teamSelection.teamB,
+                spymasterA: teamSelection.spymasterA,
+                spymasterB: teamSelection.spymasterB
+            });
+        }
+
+        function startSelectedTeamGame() {
+            if (gameState.currentGame === 'quickdraw-teams') {
+                startQuickdrawWithTeams();
+            } else if (gameState.currentGame === 'wordweb') {
+                startCodenamesWithTeams();
+            }
+        }
+
+        function cancelTeamSelection() {
+            if (!gameState.isHost) return;
+
+            gameState.currentGame = null;
+            showScreen('lobbyScreen');
+
+            // Broadcast to all clients to return to lobby
+            broadcast({
+                type: 'cancelTeamSelection'
+            });
+        }
+
+        function startQuickdrawWithTeams() {
+            // Validate teams
+            if (teamSelection.teamA.length === 0 || teamSelection.teamB.length === 0) {
+                alert('Both teams must have at least one player!');
+                return;
+            }
+
+            // Initialize game with manual team assignment
+            const gameData = initQuickdrawGameWithTeams(teamSelection.teamA, teamSelection.teamB);
+
+            broadcast({
+                type: 'startGame',
+                game: 'quickdraw-teams',
+                gameData: gameData
+            });
+        }
+
+        function initQuickdrawGameWithTeams(teamAPlayers, teamBPlayers) {
+            showScreen('quickdrawScreen');
+
+            quickdrawGameState.teamMode = true;
+            quickdrawGameState.roundsPlayed = 0;
+
+            canvas = document.getElementById('drawingCanvas');
+            ctx = canvas.getContext('2d');
+            clearCanvas();
+
+            // Setup canvas events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Set manual team assignments
+            quickdrawGameState.teams.teamA = teamAPlayers;
+            quickdrawGameState.teams.teamB = teamBPlayers;
+            quickdrawGameState.currentTeam = 'teamA';
+            quickdrawGameState.teamScores = { teamA: 0, teamB: 0 };
+
+            // Pick random drawer from current team
+            const currentTeamPlayers = quickdrawGameState.teams[quickdrawGameState.currentTeam];
+            quickdrawGameState.currentArtist = currentTeamPlayers[Math.floor(Math.random() * currentTeamPlayers.length)];
+
+            document.getElementById('quickdrawTeamIndicator').style.display = 'block';
+
+            quickdrawGameState.currentPrompt = quickdrawGameState.prompts[Math.floor(Math.random() * quickdrawGameState.prompts.length)];
+            quickdrawGameState.timeLeft = 60;
+            quickdrawGameState.guesses = {};
+            quickdrawGameState.guessFeed = [];
+            quickdrawGameState.correctGuess = null;
+            quickdrawGameState.revealed = false;
+
+            if (gameState.isHost) {
+                document.getElementById('quickdrawHostControls').style.display = 'block';
+                startDrawingTimer();
+            }
+
+            updateQuickdrawUI();
+
+            return quickdrawGameState;
+        }
+
+        function initQuickdrawGame(teamMode = false) {
+            showScreen('quickdrawScreen');
+
+            quickdrawGameState.teamMode = teamMode;
+            quickdrawGameState.roundsPlayed = 0;
+
+            canvas = document.getElementById('drawingCanvas');
+            ctx = canvas.getContext('2d');
+            clearCanvas();
+
+            // Setup canvas events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            const players = Object.keys(gameState.players);
+
+            if (teamMode) {
+                // Auto-assign players to teams
+                const shuffled = [...players].sort(() => Math.random() - 0.5);
+                const mid = Math.ceil(shuffled.length / 2);
+                quickdrawGameState.teams.teamA = shuffled.slice(0, mid);
+                quickdrawGameState.teams.teamB = shuffled.slice(mid);
+                quickdrawGameState.currentTeam = 'teamA';
+                quickdrawGameState.teamScores = { teamA: 0, teamB: 0 };
+
+                // Pick random drawer from current team
+                const currentTeamPlayers = quickdrawGameState.teams[quickdrawGameState.currentTeam];
+                quickdrawGameState.currentArtist = currentTeamPlayers[Math.floor(Math.random() * currentTeamPlayers.length)];
+
+                document.getElementById('quickdrawTeamIndicator').style.display = 'block';
+            } else {
+                // Free-for-all mode
+                quickdrawGameState.currentArtist = players[Math.floor(Math.random() * players.length)];
+                document.getElementById('quickdrawTeamIndicator').style.display = 'none';
+            }
+
+            quickdrawGameState.currentPrompt = quickdrawGameState.prompts[Math.floor(Math.random() * quickdrawGameState.prompts.length)];
+            quickdrawGameState.timeLeft = 60;
+            quickdrawGameState.guesses = {};
+            quickdrawGameState.guessFeed = [];
+            quickdrawGameState.correctGuess = null;
+            quickdrawGameState.revealed = false;
+
+            if (gameState.isHost) {
+                document.getElementById('quickdrawHostControls').style.display = 'block';
+                startDrawingTimer();
+            }
+
+            updateQuickdrawUI();
+
+            return quickdrawGameState;
+        }
+
+        function loadQuickdrawGame(data) {
+            quickdrawGameState = data;
+
+            // Initialize canvas for clients
+            canvas = document.getElementById('drawingCanvas');
+            ctx = canvas.getContext('2d');
+            clearCanvas();
+
+            // Setup canvas events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            updateQuickdrawUI();
+
+            if (gameState.isHost) {
+                startDrawingTimer();
+            }
+        }
+
+        function updateQuickdrawUI() {
+            const artist = gameState.players[quickdrawGameState.currentArtist];
+            const status = document.getElementById('quickdrawStatus');
+
+            // Check if someone guessed correctly and show that message to everyone
+            if (quickdrawGameState.correctGuess) {
+                status.textContent = `${quickdrawGameState.correctGuess.playerName} guessed correctly with: ${quickdrawGameState.correctGuess.word}`;
+                status.className = 'status-message status-success';
+                // Hide guessing area when round is over
+                document.getElementById('guessingArea').style.display = 'none';
+                // Don't return - continue to update other UI elements
+            } else if (quickdrawGameState.revealed) {
+                // Time ran out - show the answer to everyone
+                status.textContent = `The correct answer was: ${quickdrawGameState.currentPrompt}`;
+                status.className = 'status-message status-info';
+                // Hide guessing area when round is over
+                document.getElementById('guessingArea').style.display = 'none';
+                // Don't return - continue to update other UI elements
+            } else {
+                // Update team indicator if in team mode
+                if (quickdrawGameState.teamMode) {
+                    const teamName = quickdrawGameState.currentTeam === 'teamA' ? 'Team A' : 'Team B';
+                    document.getElementById('quickdrawCurrentTeam').textContent = `${teamName}'s Turn`;
+                    document.getElementById('quickdrawTeamIndicator').style.display = 'block';
+                } else {
+                    document.getElementById('quickdrawTeamIndicator').style.display = 'none';
+                }
+
+                if (gameState.peerId === quickdrawGameState.currentArtist) {
+                    // Current player is the artist
+                    status.textContent = `You're drawing: ${quickdrawGameState.currentPrompt}`;
+                    status.className = 'status-message status-success';
+                    document.getElementById('colorPalette').style.display = 'flex';
+                    document.getElementById('guessingArea').style.display = 'none';
+                } else if (quickdrawGameState.teamMode) {
+                    // Team mode logic
+                    const currentTeamPlayers = quickdrawGameState.teams[quickdrawGameState.currentTeam];
+                    const isOnCurrentTeam = currentTeamPlayers.includes(gameState.peerId);
+
+                    if (isOnCurrentTeam) {
+                        // Player is on the guessing team
+                        status.textContent = `${artist?.name || 'Someone'} is drawing... Make your guess!`;
+                        status.className = 'status-message status-info';
+                        document.getElementById('colorPalette').style.display = 'none';
+                        document.getElementById('guessingArea').style.display = 'block';
+                    } else {
+                        // Player is spectating
+                        status.textContent = `Spectating: ${artist?.name || 'Someone'} is drawing for the other team`;
+                        status.className = 'status-message status-warning';
+                        document.getElementById('colorPalette').style.display = 'none';
+                        document.getElementById('guessingArea').style.display = 'none';
+                    }
+                } else {
+                    // Free-for-all mode
+                    status.textContent = `${artist?.name || 'Someone'} is drawing...`;
+                    status.className = 'status-message status-info';
+                    document.getElementById('colorPalette').style.display = 'none';
+                    document.getElementById('guessingArea').style.display = 'block';
+                }
+            }
+
+            document.getElementById('quickdrawTimer').textContent = quickdrawGameState.timeLeft;
+
+            // Show/hide guess feed
+            const guessFeedEl = document.getElementById('guessFeed');
+            if (quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+                guessFeedEl.style.display = 'block';
+                updateGuessFeed();
+            } else if (!quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+                guessFeedEl.style.display = 'block';
+                updateGuessFeed();
+            } else {
+                guessFeedEl.style.display = 'none';
+            }
+
+            // Update scoreboard
+            updateQuickdrawScoreboard();
+        }
+
+        function updateGuessFeed() {
+            const guessList = document.getElementById('guessList');
+            if (!guessList) return;
+
+            if (quickdrawGameState.guessFeed.length === 0) {
+                guessList.innerHTML = '<div style="color: #999; font-style: italic;">No guesses yet...</div>';
+                return;
+            }
+
+            // Show last 5 guesses
+            const recentGuesses = quickdrawGameState.guessFeed.slice(-5).reverse();
+            guessList.innerHTML = recentGuesses.map(guess => {
+                const player = gameState.players[guess.playerId];
+                return `<div style="padding: 5px 0; border-bottom: 1px solid #e0e0e0;">
+                    <strong style="color: #667eea;">${player?.name || 'Unknown'}:</strong> ${guess.guess}
+                </div>`;
+            }).join('');
+        }
+
+        function updateQuickdrawScoreboard() {
+            const scoreboard = document.getElementById('quickdrawScoreboard');
+            if (!scoreboard) return;
+
+            if (quickdrawGameState.teamMode) {
+                // Build Team A members list
+                let teamAMembers = quickdrawGameState.teams.teamA.map(playerId => {
+                    const player = gameState.players[playerId];
+                    return player ? player.name : 'Unknown';
+                }).join(', ');
+
+                // Build Team B members list
+                let teamBMembers = quickdrawGameState.teams.teamB.map(playerId => {
+                    const player = gameState.players[playerId];
+                    return player ? player.name : 'Unknown';
+                }).join(', ');
+
+                // Show team scores with members
+                scoreboard.innerHTML = `
+                    <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                            <span style="font-weight: bold;">Team A</span>
+                            <span style="color: #667eea; font-weight: bold;">${quickdrawGameState.teamScores.teamA} pts</span>
+                        </div>
+                        <div style="font-size: 0.9em; color: #666;">${teamAMembers}</div>
+                    </div>
+                    <div class="score-item" style="flex-direction: column; align-items: flex-start;">
+                        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                            <span style="font-weight: bold;">Team B</span>
+                            <span style="color: #764ba2; font-weight: bold;">${quickdrawGameState.teamScores.teamB} pts</span>
+                        </div>
+                        <div style="font-size: 0.9em; color: #666;">${teamBMembers}</div>
+                    </div>
+                `;
+            } else {
+                // Show individual scores
+                updateScoreboard('quickdrawScoreboard');
+            }
+        }
+
+        function startDrawingTimer() {
+            if (quickdrawGameState.timer) clearInterval(quickdrawGameState.timer);
+
+            quickdrawGameState.timer = setInterval(() => {
+                quickdrawGameState.timeLeft--;
+
+                // Update timer display on host screen
+                document.getElementById('quickdrawTimer').textContent = quickdrawGameState.timeLeft;
+
+                if (quickdrawGameState.timeLeft <= 0) {
+                    clearInterval(quickdrawGameState.timer);
+                    revealDrawing();
+                }
+
+                broadcastGameUpdate();
+            }, 1000);
+        }
+
+        function startDrawing(e) {
+            if (gameState.peerId !== quickdrawGameState.currentArtist) return;
+            isDrawingOnCanvas = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function draw(e) {
+            if (!isDrawingOnCanvas || gameState.peerId !== quickdrawGameState.currentArtist) return;
+
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+
+            // Broadcast drawing data BEFORE updating lastX/lastY
+            if (gameState.isHost || gameState.peerId === quickdrawGameState.currentArtist) {
+                broadcast({
+                    type: 'drawingData',
+                    senderId: gameState.peerId,
+                    drawData: {
+                        fromX: lastX,
+                        fromY: lastY,
+                        toX: e.offsetX,
+                        toY: e.offsetY,
+                        color: currentColor
+                    }
+                });
+            }
+
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function stopDrawing() {
+            isDrawingOnCanvas = false;
+        }
+
+        function handleTouch(e) {
+            if (gameState.peerId !== quickdrawGameState.currentArtist) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (e.type === 'touchstart') {
+                isDrawingOnCanvas = true;
+                [lastX, lastY] = [x, y];
+            } else if (e.type === 'touchmove' && isDrawingOnCanvas) {
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+
+                broadcast({
+                    type: 'drawingData',
+                    senderId: gameState.peerId,
+                    drawData: {
+                        fromX: lastX,
+                        fromY: lastY,
+                        toX: x,
+                        toY: y,
+                        color: currentColor
+                    }
+                });
+                
+                [lastX, lastY] = [x, y];
+            }
+        }
+
+        function handleDrawingData(drawData) {
+            if (!ctx) {
+                console.error('Canvas context not initialized');
+                return;
+            }
+
+            ctx.strokeStyle = drawData.color;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(drawData.fromX, drawData.fromY);
+            ctx.lineTo(drawData.toX, drawData.toY);
+            ctx.stroke();
+        }
+
+        function setDrawColor(color) {
+            currentColor = color;
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function clearCanvas() {
+            if (ctx) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Broadcast clear canvas action if artist is drawing
+                if (gameState.peerId === quickdrawGameState.currentArtist) {
+                    broadcast({
+                        type: 'clearCanvas',
+                        senderId: gameState.peerId
+                    });
+                }
+            }
+        }
+
+        function submitGuess() {
+            const guess = document.getElementById('guessInput').value.trim().toLowerCase();
+            if (!guess) return;
+
+            if (!gameState.isHost) {
+                broadcast({
+                    type: 'guess',
+                    playerId: gameState.peerId,
+                    guess: guess
+                });
+            } else {
+                handleGuess(gameState.peerId, guess);
+            }
+
+            document.getElementById('guessInput').value = '';
+        }
+
+        function handleGuess(playerId, guess) {
+            if (!gameState.isHost) return;
+
+            // In team mode, only allow guesses from current team members (excluding artist)
+            if (quickdrawGameState.teamMode) {
+                const currentTeamPlayers = quickdrawGameState.teams[quickdrawGameState.currentTeam];
+                if (!currentTeamPlayers.includes(playerId) || playerId === quickdrawGameState.currentArtist) {
+                    return; // Ignore guesses from wrong team or artist
+                }
+            }
+
+            // Add guess to feed
+            quickdrawGameState.guessFeed.push({
+                playerId: playerId,
+                guess: guess,
+                timestamp: Date.now()
+            });
+
+            if (guess === quickdrawGameState.currentPrompt.toLowerCase()) {
+                if (quickdrawGameState.teamMode) {
+                    // Award points to team
+                    quickdrawGameState.teamScores[quickdrawGameState.currentTeam] += 100;
+                } else {
+                    // Award points to individual
+                    gameState.scores[playerId] = (gameState.scores[playerId] || 0) + 200;
+                }
+
+                quickdrawGameState.guesses[playerId] = true;
+
+                // Set correct guess info for all players to see
+                const player = gameState.players[playerId];
+                quickdrawGameState.correctGuess = {
+                    playerId: playerId,
+                    playerName: player.name,
+                    word: quickdrawGameState.currentPrompt
+                };
+
+                broadcastGameUpdate();
+                updateQuickdrawScoreboard();
+                updateQuickdrawUI(); // Update UI to show success message
+
+                // Stop the timer when someone guesses correctly
+                if (quickdrawGameState.timer) {
+                    clearInterval(quickdrawGameState.timer);
+                }
+            } else {
+                // Incorrect guess - just broadcast the update so everyone sees it
+                broadcastGameUpdate();
+            }
+        }
+
+        function revealDrawing() {
+            if (!gameState.isHost) return;
+
+            // Set revealed flag so all players see the message
+            quickdrawGameState.revealed = true;
+
+            broadcastGameUpdate();
+            updateQuickdrawUI(); // Update UI to show reveal message
+        }
+
+        function nextDrawingRound() {
+            if (!gameState.isHost) return;
+
+            quickdrawGameState.roundsPlayed++;
+
+            if (quickdrawGameState.teamMode) {
+                // Check if both teams have played (end after 6 rounds - 3 per team)
+                if (quickdrawGameState.roundsPlayed >= 6) {
+                    endGame();
+                    return;
+                }
+
+                // Switch teams
+                quickdrawGameState.currentTeam = quickdrawGameState.currentTeam === 'teamA' ? 'teamB' : 'teamA';
+
+                // Pick new random drawer from current team
+                const currentTeamPlayers = quickdrawGameState.teams[quickdrawGameState.currentTeam];
+                quickdrawGameState.currentArtist = currentTeamPlayers[Math.floor(Math.random() * currentTeamPlayers.length)];
+            } else {
+                // Free-for-all: pick new random drawer
+                const players = Object.keys(gameState.players);
+                quickdrawGameState.currentArtist = players[Math.floor(Math.random() * players.length)];
+
+                // End after 3 rounds in FFA
+                if (quickdrawGameState.roundsPlayed >= 3) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // Reset for new round
+            quickdrawGameState.currentPrompt = quickdrawGameState.prompts[Math.floor(Math.random() * quickdrawGameState.prompts.length)];
+            quickdrawGameState.timeLeft = 60;
+            quickdrawGameState.guesses = {};
+            quickdrawGameState.guessFeed = [];
+            quickdrawGameState.correctGuess = null;
+            quickdrawGameState.revealed = false;
+            clearCanvas();
+
+            // Broadcast clear to all players
+            broadcast({
+                type: 'clearCanvas',
+                senderId: gameState.peerId
+            });
+
+            updateQuickdrawUI();
+            startDrawingTimer();
+            broadcastGameUpdate();
+        }
+
+        function updateQuickdrawGame(data) {
+            quickdrawGameState = data;
+            updateQuickdrawUI();
+            updateQuickdrawScoreboard();
+        }
+
+        function broadcastGameUpdate() {
+            if (!gameState.isHost) return;
+
+            broadcast({
+                type: 'gameUpdate',
+                gameData: getCurrentGameData(),
+                scores: gameState.scores
+            });
+        }
+
+        // Handle Enter key for inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('hostName')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') createRoom();
+            });
+            
+            document.getElementById('playerName')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('roomCode').focus();
+            });
+            
+            document.getElementById('roomCode')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') joinRoom();
+            });
+            
+            document.getElementById('guessInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submitGuess();
+            });
+        });
+    </script>
+</body>
+</html>
