@@ -878,7 +878,10 @@
             updateConnectionStatus('connecting', 'Setting up room...');
 
             // Initialize Socket.IO connection
-            socket = io(SERVER_URL);
+            socket = io(SERVER_URL, {
+                transports: ['websocket', 'polling'],
+                path: '/socket.io/'
+            });
 
             socket.on('connect', () => {
                 console.log('Socket connected with ID:', socket.id);
@@ -974,7 +977,10 @@
             updateConnectionStatus('connecting', 'Connecting to room...');
 
             // Initialize Socket.IO connection
-            socket = io(SERVER_URL);
+            socket = io(SERVER_URL, {
+                transports: ['websocket', 'polling'],
+                path: '/socket.io/'
+            });
 
             socket.on('connect', () => {
                 console.log('Socket connected with ID:', socket.id);
