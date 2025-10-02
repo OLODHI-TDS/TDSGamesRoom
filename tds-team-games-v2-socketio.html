@@ -535,7 +535,7 @@
             <div id="hostControls" style="display: none; text-align: center;">
                 <h2>Select a Game to Start:</h2>
                 <div class="game-grid">
-                    <div class="game-card" onclick="startGame('trivia')">
+                    <div class="game-card" onclick="showSpeedTriviaHowToPlay()">
                         <h3>⚡ Speed Trivia</h3>
                         <p>Quick-fire questions!</p>
                     </div>
@@ -645,6 +645,57 @@
                 </button>
                 <button onclick="cancelTeamSelection()" style="padding: 15px 30px; font-size: 1.2em; margin-left: 10px;">
                     Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Speed Trivia How to Play -->
+        <div id="triviaHowToPlayScreen" class="screen">
+            <h1>⚡ Speed Trivia</h1>
+            <h2>How to Play</h2>
+
+            <div style="background: white; border-radius: 10px; padding: 30px; margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📋 Game Rules</h3>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">⏱️ Quick Rounds:</strong>
+                    <p style="margin: 5px 0 15px 20px;">You'll have <strong>15 seconds</strong> to answer each question. Answer as fast as you can!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🏆 Time-Based Scoring:</strong>
+                    <p style="margin: 5px 0 15px 20px;">The faster you answer correctly, the more points you get:</p>
+                    <ul style="margin-left: 40px;">
+                        <li><strong>1st correct:</strong> 1000 pts</li>
+                        <li><strong>2nd correct:</strong> 800 pts</li>
+                        <li><strong>3rd correct:</strong> 600 pts</li>
+                        <li><strong>4th correct:</strong> 400 pts</li>
+                        <li><strong>5th+ correct:</strong> 300 pts</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">❌ Wrong Answers:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Incorrect answers get <strong>0 points</strong>. Think fast, but think right!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">📊 15 Questions:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Race through 15 random questions. The player with the most points at the end wins!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🎯 Auto-Advance:</strong>
+                    <p style="margin: 5px 0 15px 20px;">When everyone answers or time runs out, the correct answer is revealed and you automatically move to the next question.</p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="returnToLobby()">
+                    ← Back to Lobby
+                </button>
+                <button class="btn btn-primary" id="startSpeedTriviaBtn" onclick="startSpeedTrivia()" style="display: none;">
+                    Start Speed Trivia! 🚀
                 </button>
             </div>
         </div>
@@ -1142,6 +1193,10 @@
                 showScreen('lobbyScreen');
                 updateLobbyPlayers();
             }
+            else if (data.type === 'showTriviaHowToPlay') {
+                // Show Speed Trivia how to play screen on clients
+                showScreen('triviaHowToPlayScreen');
+            }
             else if (data.type === 'showTeamSelection') {
                 // Show team selection screen on clients
                 gameState.currentGame = data.game;
@@ -1270,6 +1325,28 @@
                 screen.classList.remove('active');
             });
             document.getElementById(screenId).classList.add('active');
+        }
+
+        function showSpeedTriviaHowToPlay() {
+            if (!gameState.isHost) return;
+
+            // Show the how to play screen for host
+            showScreen('triviaHowToPlayScreen');
+
+            // Show the start button for host only
+            document.getElementById('startSpeedTriviaBtn').style.display = 'inline-block';
+
+            // Broadcast to all players to show them the how to play screen too
+            broadcast({
+                type: 'showTriviaHowToPlay'
+            });
+        }
+
+        function startSpeedTrivia() {
+            if (!gameState.isHost) return;
+
+            // Now actually start the game
+            startGame('trivia');
         }
 
         function startGame(gameType) {
