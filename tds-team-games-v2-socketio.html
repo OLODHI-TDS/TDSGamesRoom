@@ -906,6 +906,20 @@
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
+        // Easter egg: Add clown emoji to Abdul's name
+        function formatPlayerName(name) {
+            if (!name) return name;
+
+            const abdulNames = ['abdul', 'haseeb', 'abdul khan', 'abdul haseeb khan', 'supreamabdul', 'supremeabdul'];
+            const lowerName = name.toLowerCase();
+
+            if (abdulNames.includes(lowerName)) {
+                return name + ' 🤡';
+            }
+
+            return name;
+        }
+
         function startAsHost() {
             gameState.isHost = true;
             showScreen('hostSetupScreen');
@@ -923,7 +937,7 @@
                 return;
             }
 
-            gameState.playerName = hostName;
+            gameState.playerName = formatPlayerName(hostName);
             gameState.roomCode = generateRoomCode();
 
             updateConnectionStatus('connecting', 'Setting up room...');
@@ -941,7 +955,7 @@
                 // Create room on server
                 socket.emit('createRoom', {
                     roomCode: gameState.roomCode,
-                    hostName: hostName
+                    hostName: gameState.playerName
                 });
             });
 
@@ -1022,7 +1036,7 @@
                 return;
             }
 
-            gameState.playerName = playerName;
+            gameState.playerName = formatPlayerName(playerName);
             gameState.roomCode = roomCode;
 
             updateConnectionStatus('connecting', 'Connecting to room...');
@@ -1040,7 +1054,7 @@
                 // Join room on server
                 socket.emit('joinRoom', {
                     roomCode: roomCode,
-                    playerName: playerName
+                    playerName: gameState.playerName
                 });
             });
 
