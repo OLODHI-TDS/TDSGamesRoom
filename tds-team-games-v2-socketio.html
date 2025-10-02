@@ -557,6 +557,33 @@
                     </div>
                 </div>
             </div>
+
+            <div id="playerControls" style="display: none; text-align: center;">
+                <h2>Available Games:</h2>
+                <div class="game-grid">
+                    <div class="game-card" style="opacity: 0.7; cursor: not-allowed;">
+                        <h3>⚡ Speed Trivia</h3>
+                        <p>Quick-fire questions!</p>
+                    </div>
+                    <div class="game-card" style="opacity: 0.7; cursor: not-allowed;">
+                        <h3>🕵️ Codenames</h3>
+                        <p>Spymaster word association</p>
+                    </div>
+                    <div class="game-card" style="opacity: 0.7; cursor: not-allowed;">
+                        <h3>🎭 Truth & Lie</h3>
+                        <p>Spot the fake!</p>
+                    </div>
+                    <div class="game-card" style="opacity: 0.7; cursor: not-allowed;">
+                        <h3>🎨 Quick Draw: FFA</h3>
+                        <p>Free-for-all!</p>
+                    </div>
+                    <div class="game-card" style="opacity: 0.7; cursor: not-allowed;">
+                        <h3>🎨 Quick Draw: Teams</h3>
+                        <p>Team showdown!</p>
+                    </div>
+                </div>
+                <p style="color: #666; margin-top: 15px; font-style: italic;">Waiting for host to select a game...</p>
+            </div>
         </div>
 
         <!-- Team Selection Screen -->
@@ -1066,7 +1093,6 @@
 
                 showScreen('lobbyScreen');
                 document.getElementById('lobbyRoomCode').textContent = `Room Code: ${gameState.roomCode}`;
-                document.getElementById('hostControls').style.display = 'block';
                 updateLobbyPlayers();
                 updateConnectionStatus('', 'Host Connected');
 
@@ -1412,7 +1438,7 @@
         function updateLobbyPlayers() {
             const list = document.getElementById('lobbyPlayersList');
             const count = document.getElementById('playerCount');
-            
+
             list.innerHTML = '';
             const playerCount = Object.keys(gameState.players).length;
             if (count) count.textContent = playerCount;
@@ -1428,12 +1454,21 @@
                 list.appendChild(item);
             });
 
-            if (gameState.isHost && playerCount >= 2) {
-                const status = document.getElementById('lobbyStatus');
-                if (status) {
-                    status.textContent = 'Ready to start! Select a game below.';
-                    status.className = 'status-message status-success';
+            // Show game tiles for both host and players
+            if (gameState.isHost) {
+                document.getElementById('hostControls').style.display = 'block';
+                document.getElementById('playerControls').style.display = 'none';
+
+                if (playerCount >= 2) {
+                    const status = document.getElementById('lobbyStatus');
+                    if (status) {
+                        status.textContent = 'Ready to start! Select a game below.';
+                        status.className = 'status-message status-success';
+                    }
                 }
+            } else {
+                document.getElementById('hostControls').style.display = 'none';
+                document.getElementById('playerControls').style.display = 'block';
             }
         }
 
