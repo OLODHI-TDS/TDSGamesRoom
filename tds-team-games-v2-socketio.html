@@ -3223,8 +3223,10 @@
 
             // Show/hide guess feed
             const guessFeedEl = document.getElementById('guessFeed');
-            // Host always sees guess feed, or if you're not the artist
-            if (gameState.isHost || gameState.peerId !== quickdrawGameState.currentArtist) {
+            if (quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+                guessFeedEl.style.display = 'block';
+                updateGuessFeed();
+            } else if (!quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
                 guessFeedEl.style.display = 'block';
                 updateGuessFeed();
             } else {
@@ -3247,9 +3249,8 @@
             // Show last 5 guesses
             const recentGuesses = quickdrawGameState.guessFeed.slice(-5).reverse();
             guessList.innerHTML = recentGuesses.map(guess => {
-                const player = gameState.players[guess.playerId];
                 return `<div style="padding: 5px 0; border-bottom: 1px solid #e0e0e0;">
-                    <strong style="color: #667eea;">${player?.name || 'Unknown'}:</strong> ${guess.guess}
+                    <strong style="color: #667eea;">${guess.playerName || 'Unknown'}:</strong> ${guess.guess}
                 </div>`;
             }).join('');
         }
@@ -3457,9 +3458,11 @@
                 }
             }
 
-            // Add guess to feed
+            // Add guess to feed with player name
+            const player = gameState.players[playerId];
             quickdrawGameState.guessFeed.push({
                 playerId: playerId,
+                playerName: player ? player.name : 'Unknown',
                 guess: guess,
                 timestamp: Date.now()
             });
