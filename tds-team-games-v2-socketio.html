@@ -729,8 +729,8 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">📊 5 Rounds:</strong>
-                    <p style="margin: 5px 0 15px 20px;">Play through 5 rounds on different topics. The player with the most points wins!</p>
+                    <strong style="color: #764ba2;">📊 13 Rounds:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Play through 13 rounds on different topics. The player with the most points wins!</p>
                 </div>
             </div>
 
@@ -3309,9 +3309,9 @@
         function initTruthlieGame() {
             showScreen('truthlieScreen');
 
-            // Select 5 random questions from the pool
+            // Select 13 random questions from the pool
             const shuffled = [...TRUTHLIE_QUESTIONS].sort(() => Math.random() - 0.5);
-            truthlieGameState.rounds = shuffled.slice(0, 5);
+            truthlieGameState.rounds = shuffled.slice(0, 13);
 
             truthlieGameState.currentRoundIndex = 0;
             truthlieGameState.votes = {};
