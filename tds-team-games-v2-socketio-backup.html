@@ -490,7 +490,7 @@
             </div>
 
             <div class="status-message status-info" style="margin-top: 20px;">
-                💡 Make sure the game server is running and you have internet connection
+                💡 Make sure you have internet connection for peer-to-peer setup
             </div>
         </div>
 
@@ -535,7 +535,7 @@
             <div id="hostControls" style="display: none; text-align: center;">
                 <h2>Select a Game to Start:</h2>
                 <div class="game-grid">
-                    <div class="game-card" onclick="showSpeedTriviaHowToPlay()">
+                    <div class="game-card" onclick="startGame('trivia')">
                         <h3>⚡ Speed Trivia</h3>
                         <p>Quick-fire questions!</p>
                     </div>
@@ -645,57 +645,6 @@
                 </button>
                 <button onclick="cancelTeamSelection()" style="padding: 15px 30px; font-size: 1.2em; margin-left: 10px;">
                     Cancel
-                </button>
-            </div>
-        </div>
-
-        <!-- Speed Trivia How to Play -->
-        <div id="triviaHowToPlayScreen" class="screen">
-            <h1>⚡ Speed Trivia</h1>
-            <h2>How to Play</h2>
-
-            <div style="background: white; border-radius: 10px; padding: 30px; margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">📋 Game Rules</h3>
-
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">⏱️ Quick Rounds:</strong>
-                    <p style="margin: 5px 0 15px 20px;">You'll have <strong>15 seconds</strong> to answer each question. Answer as fast as you can!</p>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">🏆 Time-Based Scoring:</strong>
-                    <p style="margin: 5px 0 15px 20px;">The faster you answer correctly, the more points you get:</p>
-                    <ul style="margin-left: 40px;">
-                        <li><strong>1st correct:</strong> 1000 pts</li>
-                        <li><strong>2nd correct:</strong> 800 pts</li>
-                        <li><strong>3rd correct:</strong> 600 pts</li>
-                        <li><strong>4th correct:</strong> 400 pts</li>
-                        <li><strong>5th+ correct:</strong> 300 pts</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">❌ Wrong Answers:</strong>
-                    <p style="margin: 5px 0 15px 20px;">Incorrect answers get <strong>0 points</strong>. Think fast, but think right!</p>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">📊 15 Questions:</strong>
-                    <p style="margin: 5px 0 15px 20px;">Race through 15 random questions. The player with the most points at the end wins!</p>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #764ba2;">🎯 Auto-Advance:</strong>
-                    <p style="margin: 5px 0 15px 20px;">When everyone answers or time runs out, the correct answer is revealed and you automatically move to the next question.</p>
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button class="btn" id="triviaHowToPlayBackBtn" onclick="returnToLobby()" style="display: none;">
-                    ← Back to Lobby
-                </button>
-                <button class="btn btn-primary" id="startSpeedTriviaBtn" onclick="startSpeedTrivia()" style="display: none;">
-                    Start Speed Trivia! 🚀
                 </button>
             </div>
         </div>
@@ -874,15 +823,12 @@
     </div>
 
     <script>
-        // Server configuration
-        const SERVER_URL = 'https://tdsgamesroom.onrender.com';
-
         // Global state
-        let socket = null;
-        let connections = {}; // Keep for compatibility with drawing code
+        let peer = null;
+        let connections = {};
         let gameState = {
             isHost: false,
-            peerId: null, // Will use socket.id instead
+            peerId: null,
             roomCode: '',
             playerName: '',
             players: {},
@@ -925,35 +871,68 @@
 
             gameState.playerName = hostName;
             gameState.roomCode = generateRoomCode();
-
+            
             updateConnectionStatus('connecting', 'Setting up room...');
 
-            // Initialize Socket.IO connection
-            socket = io(SERVER_URL, {
-                transports: ['websocket', 'polling'],
-                path: '/socket.io/'
+            // Initialize PeerJS with the room code as ID
+            // Add multiple TURN servers for better NAT traversal
+            peer = new Peer('host-' + gameState.roomCode, {
+                debug: 3,
+                config: {
+                    iceServers: [
+                        // Google STUN servers
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        // Twilio STUN/TURN (more firewall-friendly)
+                        { urls: 'stun:global.stun.twilio.com:3478' },
+                        {
+                            urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        {
+                            urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        {
+                            urls: 'turn:global.turn.twilio.com:443?transport=tcp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        // Metered TURN servers (multiple ports/protocols)
+                        {
+                            urls: 'turn:openrelay.metered.ca:80',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        }
+                    ],
+                    iceTransportPolicy: 'all',
+                    iceCandidatePoolSize: 10
+                }
             });
 
-            socket.on('connect', () => {
-                console.log('Socket connected with ID:', socket.id);
-                gameState.peerId = socket.id;
-
-                // Create room on server
-                socket.emit('createRoom', {
-                    roomCode: gameState.roomCode,
-                    hostName: hostName
-                });
-            });
-
-            socket.on('roomCreated', (data) => {
-                console.log('Room created successfully:', data);
-
+            peer.on('open', (id) => {
+                gameState.peerId = id;
+                console.log('Host peer opened with ID:', id);
+                
                 // Add host as first player
-                gameState.players[socket.id] = {
+                gameState.players[id] = {
                     name: hostName,
                     isHost: true
                 };
-                gameState.scores[socket.id] = 0;
+                gameState.scores[id] = 0;
 
                 showScreen('lobbyScreen');
                 document.getElementById('lobbyRoomCode').textContent = `Room Code: ${gameState.roomCode}`;
@@ -961,55 +940,40 @@
                 updateLobbyPlayers();
                 updateConnectionStatus('', 'Host Connected');
 
-                // Setup game data handlers
-                setupSocketHandlers();
-            });
+                // Listen for incoming connections
+                peer.on('connection', (conn) => {
+                    console.log('New player connecting:', conn.peer);
 
-            socket.on('playerJoined', (data) => {
-                console.log('Player joined:', data);
+                    // Check if connection is already open
+                    if (conn.open) {
+                        console.log('Connection already open with player:', conn.peer);
+                        setupConnection(conn);
+                    } else {
+                        conn.on('open', () => {
+                            console.log('Connection opened with player:', conn.peer);
+                            setupConnection(conn);
+                        });
+                    }
 
-                // Add new player
-                gameState.players[data.playerId] = {
-                    name: data.playerName,
-                    isHost: false
-                };
-                gameState.scores[data.playerId] = 0;
-                updateLobbyPlayers();
-
-                // Send current game state to new player
-                if (gameState.isHost) {
-                    const gameData = gameState.currentGame ? getCurrentGameData() : null;
-                    socket.emit('sendToPlayer', {
-                        playerId: data.playerId,
-                        data: {
-                            type: 'gameState',
-                            players: gameState.players,
-                            scores: gameState.scores,
-                            currentGame: gameState.currentGame,
-                            gameData: gameData
-                        }
+                    conn.on('error', (err) => {
+                        console.error('Connection error with player:', conn.peer, err);
                     });
-                }
+
+                    conn.on('close', () => {
+                        console.log('Connection closed with player:', conn.peer);
+                    });
+                });
             });
 
-            socket.on('playerLeft', (data) => {
-                console.log('Player left:', data);
-                if (gameState.players[data.playerId]) {
-                    delete gameState.players[data.playerId];
-                    delete gameState.scores[data.playerId];
-                    updateLobbyPlayers();
-                }
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Socket disconnected');
-                updateConnectionStatus('disconnected', 'Disconnected');
-            });
-
-            socket.on('error', (err) => {
-                console.error('Socket error:', err);
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
                 updateConnectionStatus('disconnected', 'Connection Error');
-                alert('Connection error. Please try again.');
+                alert('Connection error: ' + err.type + '. Please try again.');
+            });
+
+            peer.on('disconnected', () => {
+                console.log('Peer disconnected');
+                updateConnectionStatus('disconnected', 'Disconnected');
             });
         }
 
@@ -1024,97 +988,185 @@
 
             gameState.playerName = playerName;
             gameState.roomCode = roomCode;
+            
+            updateConnectionStatus('connecting', 'Connecting to host...');
 
-            updateConnectionStatus('connecting', 'Connecting to room...');
-
-            // Initialize Socket.IO connection
-            socket = io(SERVER_URL, {
-                transports: ['websocket', 'polling'],
-                path: '/socket.io/'
+            // Initialize peer
+            // Add multiple TURN servers for better NAT traversal (same config as host)
+            peer = new Peer(undefined, {
+                debug: 3,
+                config: {
+                    iceServers: [
+                        // Google STUN servers
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        // Twilio STUN/TURN (more firewall-friendly)
+                        { urls: 'stun:global.stun.twilio.com:3478' },
+                        {
+                            urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        {
+                            urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        {
+                            urls: 'turn:global.turn.twilio.com:443?transport=tcp',
+                            username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                            credential: 'w1uxM55V9yVoqyVFjt+mxnKaCfTr00lFoqrOPdDZwpo='
+                        },
+                        // Metered TURN servers (multiple ports/protocols)
+                        {
+                            urls: 'turn:openrelay.metered.ca:80',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        }
+                    ],
+                    iceTransportPolicy: 'all',
+                    iceCandidatePoolSize: 10
+                }
             });
 
-            socket.on('connect', () => {
-                console.log('Socket connected with ID:', socket.id);
-                gameState.peerId = socket.id;
+            peer.on('open', (id) => {
+                gameState.peerId = id;
+                console.log('Player peer opened with ID:', id);
 
-                // Join room on server
-                socket.emit('joinRoom', {
-                    roomCode: roomCode,
-                    playerName: playerName
+                // Connect to host
+                const hostId = 'host-' + roomCode;
+                console.log('Attempting to connect to host:', hostId);
+                const conn = peer.connect(hostId, {
+                    reliable: true
                 });
-            });
 
-            socket.on('joinedRoom', (data) => {
-                console.log('Successfully joined room:', data);
+                console.log('Connection object created:', conn);
 
-                // Update local player list
-                gameState.players = {};
-                data.players.forEach(player => {
-                    gameState.players[player.id] = {
-                        name: player.name,
-                        isHost: player.id === data.players[0].id
-                    };
-                    if (!gameState.scores[player.id]) {
-                        gameState.scores[player.id] = 0;
+                conn.on('open', () => {
+                    console.log('Connected to host!');
+                    setupConnection(conn);
+
+                    // Send join message
+                    console.log('Sending join message to host');
+                    conn.send({
+                        type: 'join',
+                        playerId: id,
+                        playerName: playerName
+                    });
+
+                    showScreen('lobbyScreen');
+                    document.getElementById('lobbyRoomCode').textContent = `Room Code: ${roomCode}`;
+                    updateConnectionStatus('', 'Connected');
+                });
+
+                conn.on('error', (err) => {
+                    console.error('Connection error:', err);
+                    updateConnectionStatus('disconnected', 'Connection Failed');
+                    alert('Could not connect to room. Please check the room code and try again.');
+                });
+
+                conn.on('close', () => {
+                    console.log('Connection to host closed');
+                });
+
+                // Add a timeout to detect stuck connections
+                setTimeout(() => {
+                    if (conn.open === false) {
+                        console.error('Connection timeout - could not connect to host after 10 seconds');
+                        updateConnectionStatus('disconnected', 'Connection Timeout');
+                        alert('Connection timeout. The host may not be available or there may be network issues.');
                     }
-                });
-
-                showScreen('lobbyScreen');
-                document.getElementById('lobbyRoomCode').textContent = `Room Code: ${roomCode}`;
-                updateLobbyPlayers();
-                updateConnectionStatus('', 'Connected');
-
-                // Setup game data handlers
-                setupSocketHandlers();
+                }, 10000);
             });
 
-            socket.on('joinError', (data) => {
-                console.error('Join error:', data);
-                updateConnectionStatus('disconnected', 'Connection Failed');
-                alert(data.message || 'Could not join room. Please check the room code and try again.');
-            });
-
-            socket.on('hostDisconnected', () => {
-                console.log('Host disconnected');
-                updateConnectionStatus('disconnected', 'Host Disconnected');
-                alert('The host has disconnected. Returning to home screen.');
-                showScreen('welcomeScreen');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Socket disconnected');
-                updateConnectionStatus('disconnected', 'Disconnected');
-            });
-
-            socket.on('error', (err) => {
-                console.error('Socket error:', err);
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
                 updateConnectionStatus('disconnected', 'Connection Error');
-                alert('Connection error. Please try again.');
+                if (err.type === 'peer-unavailable') {
+                    alert('Room not found! Please check the room code.');
+                } else {
+                    alert('Connection error: ' + err.type);
+                }
             });
-        }
 
-        // Setup Socket.IO game data handler (called from both createRoom and joinRoom)
-        function setupSocketHandlers() {
-            if (!socket) return;
-
-            // Listen for game data from other players
-            socket.on('gameData', (data) => {
-                handleMessage(data, null);
+            // Listen for incoming connections (for peer-to-peer sync)
+            peer.on('connection', (conn) => {
+                console.log('Incoming connection from:', conn.peer);
+                setupConnection(conn);
             });
         }
 
         function setupConnection(conn) {
-            // Legacy function - kept for compatibility
-            // Not used in Socket.IO version
+            connections[conn.peer] = conn;
+
+            conn.on('data', (data) => {
+                handleMessage(data, conn);
+            });
+
+            conn.on('close', () => {
+                console.log('Connection closed:', conn.peer);
+                delete connections[conn.peer];
+                if (gameState.players[conn.peer]) {
+                    delete gameState.players[conn.peer];
+                    delete gameState.scores[conn.peer];
+                    updateLobbyPlayers();
+                }
+            });
+
+            conn.on('error', (err) => {
+                console.error('Connection error with', conn.peer, err);
+            });
         }
 
         function handleMessage(data, conn) {
             console.log('Received message:', data);
 
-            // Note: Join handling is now done via Socket.IO events in createRoom/joinRoom
-            // Keeping the structure for compatibility with other message types
+            if (data.type === 'join' && gameState.isHost) {
+                // Player joining
+                console.log('Processing join request from:', data.playerName, data.playerId);
+                gameState.players[data.playerId] = {
+                    name: data.playerName,
+                    isHost: false
+                };
+                gameState.scores[data.playerId] = 0;
+                updateLobbyPlayers();
 
-            if (data.type === 'gameState') {
+                // Send current game state to new player
+                const gameData = gameState.currentGame ? getCurrentGameData() : null;
+                console.log('Sending gameState to new player. Current game:', gameState.currentGame);
+                try {
+                    broadcastToPlayer(conn, {
+                        type: 'gameState',
+                        players: gameState.players,
+                        scores: gameState.scores,
+                        currentGame: gameState.currentGame,
+                        gameData: gameData
+                    });
+                    console.log('Successfully sent gameState to new player');
+                } catch (e) {
+                    console.error('Error sending gameState to new player:', e);
+                }
+
+                // Broadcast new player to everyone
+                broadcast({
+                    type: 'playerJoined',
+                    playerId: data.playerId,
+                    playerName: data.playerName
+                }, [conn.peer]);
+                console.log('Broadcasted playerJoined to all clients');
+            } 
+            else if (data.type === 'gameState') {
                 // Update game state from host
                 console.log('Received gameState from host:', data);
                 gameState.players = data.players;
@@ -1193,10 +1245,6 @@
                 showScreen('lobbyScreen');
                 updateLobbyPlayers();
             }
-            else if (data.type === 'showTriviaHowToPlay') {
-                // Show Speed Trivia how to play screen on clients
-                showScreen('triviaHowToPlayScreen');
-            }
             else if (data.type === 'showTeamSelection') {
                 // Show team selection screen on clients
                 gameState.currentGame = data.game;
@@ -1223,7 +1271,7 @@
                 handleWordwebSelect(data.index);
             }
             else if (data.type === 'codenamesClue' && gameState.isHost) {
-                handleCodenamesClue(data.senderId || data.playerId, data.word, data.number);
+                handleCodenamesClue(conn.peer, data.word, data.number);
             }
             else if (data.type === 'truthlieVote' && gameState.isHost) {
                 handleTruthlieVote(data.playerId, data.vote);
@@ -1232,12 +1280,11 @@
                 handleDrawingData(data.drawData);
 
                 // If host receives drawing data from a client, relay it to all other clients
-                if (gameState.isHost && data.senderId) {
+                if (gameState.isHost) {
                     broadcast({
                         type: 'drawingData',
-                        drawData: data.drawData,
-                        senderId: data.senderId
-                    }, [data.senderId]); // Exclude the sender
+                        drawData: data.drawData
+                    }, [conn.peer]); // Exclude the sender
                 }
             }
             else if (data.type === 'clearCanvas') {
@@ -1247,11 +1294,10 @@
                 }
 
                 // If host receives clear canvas from a client, relay it to all other clients
-                if (gameState.isHost && data.senderId) {
+                if (gameState.isHost) {
                     broadcast({
-                        type: 'clearCanvas',
-                        senderId: data.senderId
-                    }, [data.senderId]); // Exclude the sender
+                        type: 'clearCanvas'
+                    }, [conn.peer]); // Exclude the sender
                 }
             }
             else if (data.type === 'guess' && gameState.isHost) {
@@ -1260,24 +1306,23 @@
         }
 
         function broadcast(message, exclude = []) {
-            if (!socket || !gameState.roomCode) return;
-
-            // Use Socket.IO broadcast to server
-            socket.emit('broadcast', {
-                roomCode: gameState.roomCode,
-                data: message,
-                excludeIds: exclude
+            Object.keys(connections).forEach(peerId => {
+                if (!exclude.includes(peerId)) {
+                    try {
+                        connections[peerId].send(message);
+                    } catch (e) {
+                        console.error('Error broadcasting to', peerId, e);
+                    }
+                }
             });
         }
 
-        function broadcastToPlayer(playerId, message) {
-            if (!socket) return;
-
-            // Send to specific player via server
-            socket.emit('sendToPlayer', {
-                playerId: playerId,
-                data: message
-            });
+        function broadcastToPlayer(conn, message) {
+            try {
+                conn.send(message);
+            } catch (e) {
+                console.error('Error sending to player:', e);
+            }
         }
 
         function broadcastGameState() {
@@ -1325,29 +1370,6 @@
                 screen.classList.remove('active');
             });
             document.getElementById(screenId).classList.add('active');
-        }
-
-        function showSpeedTriviaHowToPlay() {
-            if (!gameState.isHost) return;
-
-            // Show the how to play screen for host
-            showScreen('triviaHowToPlayScreen');
-
-            // Show the start and back buttons for host only
-            document.getElementById('startSpeedTriviaBtn').style.display = 'inline-block';
-            document.getElementById('triviaHowToPlayBackBtn').style.display = 'inline-block';
-
-            // Broadcast to all players to show them the how to play screen too
-            broadcast({
-                type: 'showTriviaHowToPlay'
-            });
-        }
-
-        function startSpeedTrivia() {
-            if (!gameState.isHost) return;
-
-            // Now actually start the game
-            startGame('trivia');
         }
 
         function startGame(gameType) {
@@ -2332,7 +2354,6 @@
 
                 broadcast({
                     type: 'codenamesClue',
-                    senderId: gameState.peerId,
                     word: word,
                     number: number
                 });
@@ -3221,10 +3242,17 @@
 
             document.getElementById('quickdrawTimer').textContent = quickdrawGameState.timeLeft;
 
-            // Show/hide guess feed - always show it so drawer can see guesses too
+            // Show/hide guess feed
             const guessFeedEl = document.getElementById('guessFeed');
-            guessFeedEl.style.display = 'block';
-            updateGuessFeed();
+            if (quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+                guessFeedEl.style.display = 'block';
+                updateGuessFeed();
+            } else if (!quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+                guessFeedEl.style.display = 'block';
+                updateGuessFeed();
+            } else {
+                guessFeedEl.style.display = 'none';
+            }
 
             // Update scoreboard
             updateQuickdrawScoreboard();
@@ -3242,8 +3270,9 @@
             // Show last 5 guesses
             const recentGuesses = quickdrawGameState.guessFeed.slice(-5).reverse();
             guessList.innerHTML = recentGuesses.map(guess => {
+                const player = gameState.players[guess.playerId];
                 return `<div style="padding: 5px 0; border-bottom: 1px solid #e0e0e0;">
-                    <strong style="color: #667eea;">${guess.playerName || 'Unknown'}:</strong> ${guess.guess}
+                    <strong style="color: #667eea;">${player?.name || 'Unknown'}:</strong> ${guess.guess}
                 </div>`;
             }).join('');
         }
@@ -3328,7 +3357,6 @@
             if (gameState.isHost || gameState.peerId === quickdrawGameState.currentArtist) {
                 broadcast({
                     type: 'drawingData',
-                    senderId: gameState.peerId,
                     drawData: {
                         fromX: lastX,
                         fromY: lastY,
@@ -3367,10 +3395,9 @@
                 ctx.moveTo(lastX, lastY);
                 ctx.lineTo(x, y);
                 ctx.stroke();
-
+                
                 broadcast({
                     type: 'drawingData',
-                    senderId: gameState.peerId,
                     drawData: {
                         fromX: lastX,
                         fromY: lastY,
@@ -3416,8 +3443,7 @@
                 // Broadcast clear canvas action if artist is drawing
                 if (gameState.peerId === quickdrawGameState.currentArtist) {
                     broadcast({
-                        type: 'clearCanvas',
-                        senderId: gameState.peerId
+                        type: 'clearCanvas'
                     });
                 }
             }
@@ -3451,11 +3477,9 @@
                 }
             }
 
-            // Add guess to feed with player name
-            const player = gameState.players[playerId];
+            // Add guess to feed
             quickdrawGameState.guessFeed.push({
                 playerId: playerId,
-                playerName: player ? player.name : 'Unknown',
                 guess: guess,
                 timestamp: Date.now()
             });
@@ -3490,7 +3514,6 @@
             } else {
                 // Incorrect guess - just broadcast the update so everyone sees it
                 broadcastGameUpdate();
-                updateQuickdrawUI(); // Update host UI to show the guess
             }
         }
 
@@ -3544,10 +3567,7 @@
             clearCanvas();
 
             // Broadcast clear to all players
-            broadcast({
-                type: 'clearCanvas',
-                senderId: gameState.peerId
-            });
+            broadcast({ type: 'clearCanvas' });
 
             updateQuickdrawUI();
             startDrawingTimer();
