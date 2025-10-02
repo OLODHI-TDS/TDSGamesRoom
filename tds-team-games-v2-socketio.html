@@ -547,7 +547,7 @@
                         <h3>🎭 Truth & Lie</h3>
                         <p>Spot the fake!</p>
                     </div>
-                    <div class="game-card" onclick="startGame('quickdraw-ffa')">
+                    <div class="game-card" onclick="showFFAQuickDrawHowToPlay()">
                         <h3>🎨 Quick Draw: FFA</h3>
                         <p>Free-for-all!</p>
                     </div>
@@ -696,6 +696,56 @@
                 </button>
                 <button class="btn btn-primary" id="startSpeedTriviaBtn" onclick="startSpeedTrivia()" style="display: none;">
                     Start Speed Trivia! 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- FFA Quick Draw How to Play -->
+        <div id="quickdrawFFAHowToPlayScreen" class="screen">
+            <h1>🎨 FFA Quick Draw</h1>
+            <h2>How to Play</h2>
+
+            <div style="background: white; border-radius: 10px; padding: 30px; margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📋 Game Rules</h3>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🖌️ Take Turns Drawing:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Each player gets a turn to draw a secret word. Everyone else tries to guess what you're drawing!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">⏱️ 60 Second Rounds:</strong>
+                    <p style="margin: 5px 0 15px 20px;">You have <strong>60 seconds</strong> to draw your word. Draw quickly and clearly!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🏆 Scoring System:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Points are awarded to both the guesser and the drawer:</p>
+                    <ul style="margin-left: 40px;">
+                        <li><strong>First correct guess:</strong> Guesser gets 1000 pts, Drawer gets 500 pts</li>
+                        <li><strong>Second correct guess:</strong> Guesser gets 800 pts, Drawer gets 400 pts</li>
+                        <li><strong>Third correct guess:</strong> Guesser gets 600 pts, Drawer gets 300 pts</li>
+                        <li><strong>Fourth+ correct guess:</strong> Guesser gets 400 pts, Drawer gets 200 pts</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">💬 Live Guess Feed:</strong>
+                    <p style="margin: 5px 0 15px 20px;">See everyone's guesses in real-time! Wrong guesses are visible to all players.</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🎯 Everyone Plays:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Free-for-all mode means everyone competes individually. The player with the most points at the end wins!</p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" id="quickdrawFFAHowToPlayBackBtn" onclick="returnToLobby()" style="display: none;">
+                    ← Back to Lobby
+                </button>
+                <button class="btn btn-primary" id="startFFAQuickDrawBtn" onclick="startFFAQuickDraw()" style="display: none;">
+                    Start FFA Quick Draw! 🚀
                 </button>
             </div>
         </div>
@@ -1211,6 +1261,10 @@
                 // Show Speed Trivia how to play screen on clients
                 showScreen('triviaHowToPlayScreen');
             }
+            else if (data.type === 'showQuickdrawFFAHowToPlay') {
+                // Show FFA Quick Draw how to play screen on clients
+                showScreen('quickdrawFFAHowToPlayScreen');
+            }
             else if (data.type === 'showTeamSelection') {
                 // Show team selection screen on clients
                 gameState.currentGame = data.game;
@@ -1355,6 +1409,27 @@
             broadcast({
                 type: 'showTriviaHowToPlay'
             });
+        }
+
+        function showFFAQuickDrawHowToPlay() {
+            if (!gameState.isHost) return;
+
+            // Show the how to play screen for host
+            showScreen('quickdrawFFAHowToPlayScreen');
+
+            // Show the start and back buttons for host only
+            document.getElementById('startFFAQuickDrawBtn').style.display = 'inline-block';
+            document.getElementById('quickdrawFFAHowToPlayBackBtn').style.display = 'inline-block';
+
+            // Broadcast to all players to show them the how to play screen too
+            broadcast({
+                type: 'showQuickdrawFFAHowToPlay'
+            });
+        }
+
+        function startFFAQuickDraw() {
+            if (!gameState.isHost) return;
+            startGame('quickdraw-ffa');
         }
 
         function startSpeedTrivia() {
