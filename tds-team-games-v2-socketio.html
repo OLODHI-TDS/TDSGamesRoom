@@ -833,14 +833,16 @@
         <!-- Truth & Lie Game -->
         <div id="truthlieScreen" class="screen">
             <h1>🎭 Two Truths & A Lie</h1>
-            
+
+            <div class="timer" id="truthlieTimer">30</div>
+
             <div class="status-message status-info" id="truthlieStatus">
                 Which statement is the LIE?
             </div>
 
             <div class="question-container">
                 <h2 id="truthliePlayer" style="text-align: center; margin-bottom: 20px;">About TDS & Team</h2>
-                
+
                 <div class="statements-container" id="truthlieStatements">
                     <!-- Statements will be inserted here -->
                 </div>
@@ -852,8 +854,6 @@
             </div>
 
             <div id="truthlieHostControls" style="display: none; text-align: center; margin-top: 20px;">
-                <button onclick="revealTruthlieAnswer()">Reveal Answer</button>
-                <button onclick="nextTruthlieRound()">Next Round</button>
                 <button onclick="endGame()">End Game</button>
             </div>
         </div>
@@ -2652,28 +2652,55 @@
             ],
             currentRoundIndex: 0,
             votes: {},
-            revealed: false
+            revealed: false,
+            timeLeft: 30,
+            timer: null
         };
 
         function initTruthlieGame() {
             showScreen('truthlieScreen');
-            
+
             truthlieGameState.currentRoundIndex = 0;
             truthlieGameState.votes = {};
             truthlieGameState.revealed = false;
-            
+            truthlieGameState.timeLeft = 30;
+
             if (gameState.isHost) {
                 document.getElementById('truthlieHostControls').style.display = 'block';
+                startTruthlieTimer();
             }
 
             renderTruthlieRound();
-            
+
             return truthlieGameState;
+        }
+
+        function startTruthlieTimer() {
+            if (truthlieGameState.timer) clearInterval(truthlieGameState.timer);
+
+            truthlieGameState.timer = setInterval(() => {
+                truthlieGameState.timeLeft--;
+
+                // Update timer display on host screen
+                document.getElementById('truthlieTimer').textContent = truthlieGameState.timeLeft;
+
+                if (truthlieGameState.timeLeft <= 0) {
+                    clearInterval(truthlieGameState.timer);
+                    revealTruthlieAnswer();
+                }
+
+                broadcastGameUpdate();
+            }, 1000);
         }
 
         function loadTruthlieGame(data) {
             truthlieGameState = data;
             renderTruthlieRound();
+            updateTruthlieUI();
+        }
+
+        function updateTruthlieUI() {
+            document.getElementById('truthlieTimer').textContent = truthlieGameState.timeLeft;
         }
 
         function renderTruthlieRound() {
@@ -2731,18 +2758,36 @@
 
         function handleTruthlieVote(playerId, vote) {
             if (!gameState.isHost) return;
-            
+
             truthlieGameState.votes[playerId] = vote;
             broadcastGameUpdate();
+
+            // Check if all players have voted
+            const totalPlayers = Object.keys(gameState.players).length;
+            const totalVotes = Object.keys(truthlieGameState.votes).length;
+
+            if (totalVotes >= totalPlayers && !truthlieGameState.revealed) {
+                // All players have voted, auto-reveal after 1 second
+                setTimeout(() => {
+                    revealTruthlieAnswer();
+                }, 1000);
+            }
         }
 
         function revealTruthlieAnswer() {
             if (!gameState.isHost) return;
+            if (truthlieGameState.revealed) return; // Prevent double reveal
+
+            // Stop the timer
+            if (truthlieGameState.timer) {
+                clearInterval(truthlieGameState.timer);
+                truthlieGameState.timer = null;
+            }
 
             truthlieGameState.revealed = true;
             const round = truthlieGameState.rounds[truthlieGameState.currentRoundIndex];
             const lieIndex = round.statements.findIndex(s => !s.truth);
-            
+
             // Award points
             Object.keys(truthlieGameState.votes).forEach(playerId => {
                 if (truthlieGameState.votes[playerId] === lieIndex) {
@@ -2753,18 +2798,25 @@
             broadcastGameUpdate();
             renderTruthlieRound();
             updateScoreboard('truthlieScoreboard');
+
+            // Auto-advance to next round after 3 seconds
+            setTimeout(() => {
+                nextTruthlieRound();
+            }, 3000);
         }
 
         function nextTruthlieRound() {
             if (!gameState.isHost) return;
 
             truthlieGameState.currentRoundIndex++;
-            
+
             if (truthlieGameState.currentRoundIndex >= truthlieGameState.rounds.length) {
                 endGame();
             } else {
                 truthlieGameState.votes = {};
                 truthlieGameState.revealed = false;
+                truthlieGameState.timeLeft = 30;
+                startTruthlieTimer();
                 broadcastGameUpdate();
                 renderTruthlieRound();
             }
@@ -2773,6 +2825,7 @@
         function updateTruthlieGame(data) {
             truthlieGameState = data;
             renderTruthlieRound();
+            updateTruthlieUI();
             updateScoreboard('truthlieScoreboard');
         }
 
