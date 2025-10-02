@@ -543,7 +543,7 @@
                         <h3>🕵️ Codenames</h3>
                         <p>Spymaster word association</p>
                     </div>
-                    <div class="game-card" onclick="startGame('truthlie')">
+                    <div class="game-card" onclick="showTruthlieHowToPlay()">
                         <h3>🎭 Truth & Lie</h3>
                         <p>Spot the fake!</p>
                     </div>
@@ -700,6 +700,50 @@
             </div>
         </div>
 
+        <!-- Truth & Lie How to Play -->
+        <div id="truthlieHowToPlayScreen" class="screen">
+            <h1>🎭 Two Truths & A Lie</h1>
+            <h2>How to Play</h2>
+
+            <div style="background: white; border-radius: 10px; padding: 30px; margin: 20px 0; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📋 Game Rules</h3>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🎯 Spot the Lie:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Each round presents 3 statements - 2 truths and 1 lie. Can you figure out which one is false?</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">⏱️ Quick Thinking:</strong>
+                    <p style="margin: 5px 0 15px 20px;">You have <strong>15 seconds</strong> to make your choice. Think fast!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🏆 Scoring:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Correctly identify the lie and earn <strong>100 points</strong>!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">🎯 Auto-Reveal:</strong>
+                    <p style="margin: 5px 0 15px 20px;">When everyone votes or time runs out, the answer is revealed automatically. Only those who voted get points!</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #764ba2;">📊 5 Rounds:</strong>
+                    <p style="margin: 5px 0 15px 20px;">Play through 5 rounds on different topics. The player with the most points wins!</p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" id="truthlieHowToPlayBackBtn" onclick="returnToLobby()" style="display: none;">
+                    ← Back to Lobby
+                </button>
+                <button class="btn btn-primary" id="startTruthlieBtn" onclick="startTruthlieGame()" style="display: none;">
+                    Start Truth & Lie! 🚀
+                </button>
+            </div>
+        </div>
+
         <!-- FFA Quick Draw How to Play -->
         <div id="quickdrawFFAHowToPlayScreen" class="screen">
             <h1>🎨 FFA Quick Draw</h1>
@@ -834,7 +878,7 @@
         <div id="truthlieScreen" class="screen">
             <h1>🎭 Two Truths & A Lie</h1>
 
-            <div class="timer" id="truthlieTimer">30</div>
+            <div class="timer" id="truthlieTimer">15</div>
 
             <div class="status-message status-info" id="truthlieStatus">
                 Which statement is the LIE?
@@ -854,6 +898,7 @@
             </div>
 
             <div id="truthlieHostControls" style="display: none; text-align: center; margin-top: 20px;">
+                <button id="nextTruthlieRoundBtn" onclick="nextTruthlieRound()" style="display: none;">Next Round</button>
                 <button onclick="endGame()">End Game</button>
             </div>
         </div>
@@ -1265,6 +1310,10 @@
                 // Show FFA Quick Draw how to play screen on clients
                 showScreen('quickdrawFFAHowToPlayScreen');
             }
+            else if (data.type === 'showTruthlieHowToPlay') {
+                // Show Truth & Lie how to play screen on clients
+                showScreen('truthlieHowToPlayScreen');
+            }
             else if (data.type === 'showTeamSelection') {
                 // Show team selection screen on clients
                 gameState.currentGame = data.game;
@@ -1430,6 +1479,27 @@
         function startFFAQuickDraw() {
             if (!gameState.isHost) return;
             startGame('quickdraw-ffa');
+        }
+
+        function showTruthlieHowToPlay() {
+            if (!gameState.isHost) return;
+
+            // Show the how to play screen for host
+            showScreen('truthlieHowToPlayScreen');
+
+            // Show the start and back buttons for host only
+            document.getElementById('startTruthlieBtn').style.display = 'inline-block';
+            document.getElementById('truthlieHowToPlayBackBtn').style.display = 'inline-block';
+
+            // Broadcast to all players to show them the how to play screen too
+            broadcast({
+                type: 'showTruthlieHowToPlay'
+            });
+        }
+
+        function startTruthlieGame() {
+            if (!gameState.isHost) return;
+            startGame('truthlie');
         }
 
         function startSpeedTrivia() {
@@ -2653,7 +2723,7 @@
             currentRoundIndex: 0,
             votes: {},
             revealed: false,
-            timeLeft: 30,
+            timeLeft: 15,
             timer: null
         };
 
@@ -2663,7 +2733,7 @@
             truthlieGameState.currentRoundIndex = 0;
             truthlieGameState.votes = {};
             truthlieGameState.revealed = false;
-            truthlieGameState.timeLeft = 30;
+            truthlieGameState.timeLeft = 15;
 
             if (gameState.isHost) {
                 document.getElementById('truthlieHostControls').style.display = 'block';
@@ -2799,14 +2869,15 @@
             renderTruthlieRound();
             updateScoreboard('truthlieScoreboard');
 
-            // Auto-advance to next round after 3 seconds
-            setTimeout(() => {
-                nextTruthlieRound();
-            }, 3000);
+            // Show next round button
+            document.getElementById('nextTruthlieRoundBtn').style.display = 'inline-block';
         }
 
         function nextTruthlieRound() {
             if (!gameState.isHost) return;
+
+            // Hide next round button
+            document.getElementById('nextTruthlieRoundBtn').style.display = 'none';
 
             truthlieGameState.currentRoundIndex++;
 
@@ -2815,7 +2886,7 @@
             } else {
                 truthlieGameState.votes = {};
                 truthlieGameState.revealed = false;
-                truthlieGameState.timeLeft = 30;
+                truthlieGameState.timeLeft = 15;
                 startTruthlieTimer();
                 broadcastGameUpdate();
                 renderTruthlieRound();
