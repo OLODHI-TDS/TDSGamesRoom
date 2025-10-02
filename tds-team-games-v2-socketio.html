@@ -3223,10 +3223,8 @@
 
             // Show/hide guess feed
             const guessFeedEl = document.getElementById('guessFeed');
-            if (quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
-                guessFeedEl.style.display = 'block';
-                updateGuessFeed();
-            } else if (!quickdrawGameState.teamMode && gameState.peerId !== quickdrawGameState.currentArtist) {
+            // Host always sees guess feed, or if you're not the artist
+            if (gameState.isHost || gameState.peerId !== quickdrawGameState.currentArtist) {
                 guessFeedEl.style.display = 'block';
                 updateGuessFeed();
             } else {
