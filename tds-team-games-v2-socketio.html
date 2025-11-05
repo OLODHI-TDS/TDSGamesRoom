@@ -1315,6 +1315,8 @@
                     gameState.scores = data.scores;
                 }
                 updateGameData(data.gameData);
+                // Ensure all scoreboards are updated after receiving score updates
+                updateAllScoreboards();
             }
             else if (data.type === 'endGame') {
                 // Handle end game message from host
@@ -1350,6 +1352,7 @@
                     updateFinalCodenamesScoreboard();
                 } else {
                     updateScoreboard('finalScoreboard');
+                    updateAllScoreboards(); // Ensure all scoreboards show final scores
                 }
             }
             else if (data.type === 'returnToLobby') {
@@ -1784,12 +1787,13 @@
                 updateFinalCodenamesScoreboard();
             } else {
                 updateScoreboard('finalScoreboard');
+                updateAllScoreboards(); // Ensure all scoreboards show final scores
             }
 
             if (gameState.isHost) {
                 document.getElementById('resultsHostControls').style.display = 'block';
 
-                // Broadcast end game to all players
+                // Broadcast end game to all players with final scores
                 broadcast({
                     type: 'endGame',
                     scores: gameState.scores,
@@ -2378,9 +2382,10 @@
             triviaGameState.playerAnswers = {};
             triviaGameState.revealed = false;
             triviaGameState.timeLeft = 15;
-            
+
             renderTriviaQuestion();
-            
+            updateScoreboard('triviaScoreboard'); // Ensure scoreboard shows current scores
+
             if (gameState.isHost) {
                 startTriviaTimer();
                 broadcastGameUpdate();
@@ -2536,8 +2541,9 @@
             // Update host's display
             renderTriviaQuestion();
             updateScoreboard('triviaScoreboard');
+            updateAllScoreboards(); // Ensure all host scoreboards are synchronized
 
-            // Send to clients
+            // Send to clients with updated scores
             broadcastGameUpdate();
         }
 
