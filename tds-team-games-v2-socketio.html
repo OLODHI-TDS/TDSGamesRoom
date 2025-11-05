@@ -1203,6 +1203,42 @@
                 setupSocketHandlers();
             });
 
+            socket.on('playerJoined', (data) => {
+                console.log('Player joined:', data);
+
+                // Add new player
+                gameState.players[data.playerId] = {
+                    name: data.playerName,
+                    isHost: false
+                };
+                gameState.scores[data.playerId] = 0;
+                updateLobbyPlayers();
+
+                // Send current game state to new player if we're the host
+                if (gameState.isHost) {
+                    const gameData = gameState.currentGame ? getCurrentGameData() : null;
+                    socket.emit('sendToPlayer', {
+                        playerId: data.playerId,
+                        data: {
+                            type: 'gameState',
+                            players: gameState.players,
+                            scores: gameState.scores,
+                            currentGame: gameState.currentGame,
+                            gameData: gameData
+                        }
+                    });
+                }
+            });
+
+            socket.on('playerLeft', (data) => {
+                console.log('Player left:', data);
+                if (gameState.players[data.playerId]) {
+                    delete gameState.players[data.playerId];
+                    delete gameState.scores[data.playerId];
+                    updateLobbyPlayers();
+                }
+            });
+
             socket.on('joinError', (data) => {
                 console.error('Join error:', data);
                 updateConnectionStatus('disconnected', 'Connection Failed');
@@ -1279,6 +1315,8 @@
                     gameState.scores = data.scores;
                 }
                 updateGameData(data.gameData);
+                // Ensure all scoreboards are updated after receiving score updates
+                updateAllScoreboards();
             }
             else if (data.type === 'endGame') {
                 // Handle end game message from host
@@ -1314,6 +1352,7 @@
                     updateFinalCodenamesScoreboard();
                 } else {
                     updateScoreboard('finalScoreboard');
+                    updateAllScoreboards(); // Ensure all scoreboards show final scores
                 }
             }
             else if (data.type === 'returnToLobby') {
@@ -1748,12 +1787,13 @@
                 updateFinalCodenamesScoreboard();
             } else {
                 updateScoreboard('finalScoreboard');
+                updateAllScoreboards(); // Ensure all scoreboards show final scores
             }
 
             if (gameState.isHost) {
                 document.getElementById('resultsHostControls').style.display = 'block';
 
-                // Broadcast end game to all players
+                // Broadcast end game to all players with final scores
                 broadcast({
                     type: 'endGame',
                     scores: gameState.scores,
@@ -2342,9 +2382,10 @@
             triviaGameState.playerAnswers = {};
             triviaGameState.revealed = false;
             triviaGameState.timeLeft = 15;
-            
+
             renderTriviaQuestion();
-            
+            updateScoreboard('triviaScoreboard'); // Ensure scoreboard shows current scores
+
             if (gameState.isHost) {
                 startTriviaTimer();
                 broadcastGameUpdate();
@@ -2500,8 +2541,9 @@
             // Update host's display
             renderTriviaQuestion();
             updateScoreboard('triviaScoreboard');
+            updateAllScoreboards(); // Ensure all host scoreboards are synchronized
 
-            // Send to clients
+            // Send to clients with updated scores
             broadcastGameUpdate();
         }
 
