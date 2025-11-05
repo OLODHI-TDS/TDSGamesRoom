@@ -1203,6 +1203,42 @@
                 setupSocketHandlers();
             });
 
+            socket.on('playerJoined', (data) => {
+                console.log('Player joined:', data);
+
+                // Add new player
+                gameState.players[data.playerId] = {
+                    name: data.playerName,
+                    isHost: false
+                };
+                gameState.scores[data.playerId] = 0;
+                updateLobbyPlayers();
+
+                // Send current game state to new player if we're the host
+                if (gameState.isHost) {
+                    const gameData = gameState.currentGame ? getCurrentGameData() : null;
+                    socket.emit('sendToPlayer', {
+                        playerId: data.playerId,
+                        data: {
+                            type: 'gameState',
+                            players: gameState.players,
+                            scores: gameState.scores,
+                            currentGame: gameState.currentGame,
+                            gameData: gameData
+                        }
+                    });
+                }
+            });
+
+            socket.on('playerLeft', (data) => {
+                console.log('Player left:', data);
+                if (gameState.players[data.playerId]) {
+                    delete gameState.players[data.playerId];
+                    delete gameState.scores[data.playerId];
+                    updateLobbyPlayers();
+                }
+            });
+
             socket.on('joinError', (data) => {
                 console.error('Join error:', data);
                 updateConnectionStatus('disconnected', 'Connection Failed');
