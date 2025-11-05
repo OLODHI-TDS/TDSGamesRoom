@@ -3828,6 +3828,7 @@
             broadcastGameUpdate();
             renderTruthlieRound();
             updateScoreboard('truthlieScoreboard');
+            updateAllScoreboards(); // Ensure all scoreboards are synchronized
 
             // Show next round button
             document.getElementById('nextTruthlieRoundBtn').style.display = 'inline-block';
@@ -3850,6 +3851,7 @@
                 startTruthlieTimer();
                 broadcastGameUpdate();
                 renderTruthlieRound();
+                updateScoreboard('truthlieScoreboard'); // Show accumulated scores for next round
             }
         }
 
@@ -4654,6 +4656,7 @@
 
                 broadcastGameUpdate();
                 updateQuickdrawScoreboard();
+                updateAllScoreboards(); // Sync all scoreboards for FFA mode
                 updateQuickdrawUI(); // Update UI to show success message
 
                 // Stop the timer when someone guesses correctly
@@ -4723,6 +4726,8 @@
             });
 
             updateQuickdrawUI();
+            updateQuickdrawScoreboard(); // Show accumulated scores for next round
+            updateAllScoreboards(); // Sync all scoreboards for FFA mode
             startDrawingTimer();
             broadcastGameUpdate();
         }
